@@ -1,3 +1,13 @@
 Django>=5.2.5
 psycopg2-binary>=2.9.10
-python-dotenv>=1.0.1 
+python-dotenv>=1.0.1
+# Added for API and auth
+djangorestframework>=3.15.2
+PyJWT>=2.8.0
+djangorestframework-simplejwt>=5.3.1
+# CORS support
+django-cors-headers>=4.4.0
+# Database URL parser
+dj-database-url>=2.3.0
+# HTTP client
+requests>=2.32.3 

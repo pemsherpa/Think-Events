@@ -13,6 +13,8 @@ import Venues from "./pages/Venues";
 import Organizers from "./pages/Organizers";
 import Categories from "./pages/Categories";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,8 @@ const App = () => {
             <Route path="/venues" element={<Venues />} />
             <Route path="/organizers" element={<Organizers />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
