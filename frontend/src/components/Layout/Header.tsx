@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search, User, Menu, X, Calendar, MapPin, Users, Building, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -9,16 +9,6 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkAuth = () => setIsLoggedIn(!!localStorage.getItem('access'));
-    checkAuth();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'access') checkAuth();
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   const navigationItems = [
     { title: 'Events', icon: Calendar, path: '/' },
@@ -33,13 +23,6 @@ const Header = () => {
   };
 
   const handleLogoClick = () => {
-    navigate('/');
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
-    setIsLoggedIn(false);
     navigate('/');
   };
 
@@ -98,15 +81,10 @@ const Header = () => {
           {/* User Actions */}
           <div className="flex items-center space-x-3">
             {isLoggedIn ? (
-              <div className="hidden md:flex items-center space-x-2">
-                <Button variant="ghost" size="sm" className="flex items-center space-x-2" onClick={() => navigate('/') }>
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Profile</span>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600">
-                  <LogOut className="h-4 w-4 mr-1" /> Logout
-                </Button>
-              </div>
+              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
             ) : (
               <div className="hidden md:flex space-x-2">
                 <Button variant="ghost" size="sm" onClick={() => handleNavigation('/login')}>Login</Button>
@@ -158,22 +136,13 @@ const Header = () => {
               </div>
 
               {/* Mobile Auth Buttons */}
-              {!isLoggedIn ? (
+              {!isLoggedIn && (
                 <div className="flex space-x-2 pt-3 border-t">
                   <Button variant="ghost" size="sm" className="flex-1" onClick={() => handleNavigation('/login')}>
                     Login
                   </Button>
                   <Button size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={() => handleNavigation('/signup')}>
                     Sign Up
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex space-x-2 pt-3 border-t">
-                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => navigate('/') }>
-                    <User className="h-4 w-4 mr-1" /> Profile
-                  </Button>
-                  <Button size="sm" className="flex-1" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-1" /> Logout
                   </Button>
                 </div>
               )}

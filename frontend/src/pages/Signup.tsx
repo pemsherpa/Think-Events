@@ -1,118 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-const GOOGLE_CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID;
-
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
+const API_URL = import.meta.env.VITE_API_URL as string;
 
 const Signup: React.FC = () => {
-  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (GOOGLE_CLIENT_ID && !document.getElementById('google-identity')) {
-      const s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client';
-      s.async = true;
-      s.id = 'google-identity';
-      document.body.appendChild(s);
-    }
-  }, []);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`${API_BASE}/auth/register/`, {
+      const res = await fetch(`${API_URL}/api/auth/signup/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.detail || 'Signup failed');
-      localStorage.setItem('access', data.access);
-      localStorage.setItem('refresh', data.refresh);
-      navigate('/');
+      if (!res.ok) {
+        const firstError = typeof data === 'object' ? Object.values(data)?.[0] : null;
+        throw new Error((firstError as any) || 'Signup failed');
+      }
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'Signup failed');
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
-  const googleSignup = async () => {
-    if (!window.google || !GOOGLE_CLIENT_ID) return;
-    try {
-      await window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async (resp: any) => {
-          try {
-            const r = await fetch(`${API_BASE}/auth/google/`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id_token: resp.credential })
-            });
-            const data = await r.json();
-            if (!r.ok) throw new Error(data?.detail || 'Google signup failed');
-            localStorage.setItem('access', data.access);
-            localStorage.setItem('refresh', data.refresh);
-            navigate('/');
-          } catch (e: any) {
-            setError(e.message || 'Google signup failed');
-          }
-        }
-      });
-      window.google.accounts.id.prompt();
-    } catch (e: any) {
-      setError(e.message || 'Google init failed');
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-        <h1 className="text-2xl font-semibold mb-4 text-center">Create your account</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label className="mb-1 block">Username</Label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="johndoe" />
-          </div>
-          <div>
-            <Label className="mb-1 block">Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" />
-          </div>
-          <div>
-            <Label className="mb-1 block">Password</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
-          </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full bg-purple-600 hover:bg-purple-700">
-            {loading ? 'Creating...' : 'Create account'}
-          </Button>
-        </form>
-        <div className="my-4 flex items-center">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="px-2 text-xs text-gray-500">OR</span>
-          <div className="flex-1 h-px bg-gray-200" />
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow w-full max-w-sm space-y-4">
+        <h1 className="text-xl font-semibold">Create account</h1>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <div>
+          <label className="text-sm text-gray-600">Username</label>
+          <Input value={username} onChange={(e) => setUsername(e.target.value)} required />
         </div>
-        <Button variant="outline" className="w-full" onClick={googleSignup}>
-          Continue with Google
+        <div>
+          <label className="text-sm text-gray-600">Email</label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm text-gray-600">Password</label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Creating...' : 'Sign Up'}
         </Button>
-        <p className="mt-4 text-sm text-center">Already have an account? <Link to="/login" className="underline">Login</Link></p>
-      </div>
+      </form>
     </div>
   );
 };
