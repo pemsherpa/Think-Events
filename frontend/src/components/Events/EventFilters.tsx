@@ -6,11 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-const EventFilters = () => {
+interface EventFiltersProps {
+  onFilterChange: (filters: any) => void;
+}
+
+const EventFilters: React.FC<EventFiltersProps> = ({ onFilterChange }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [priceRange, setPriceRange] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
     'Concerts', 'Festivals', 'Conferences', 'Sports', 'Theatre', 'Comedy', 'Workshops', 'Cultural'
@@ -21,11 +26,33 @@ const EventFilters = () => {
   ];
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
+    const newCategories = selectedCategories.includes(category) 
+      ? selectedCategories.filter(c => c !== category)
+      : [...selectedCategories, category];
+    setSelectedCategories(newCategories);
+    updateFilters(newCategories, selectedLocation, selectedDate, priceRange, searchQuery);
+  };
+
+  const updateFilters = (categories: string[], location: string, date: string, price: string, search: string) => {
+    const filters: any = {};
+    
+    if (categories.length > 0) {
+      filters.category = categories.join(',');
+    }
+    if (location) {
+      filters.location = location;
+    }
+    if (date) {
+      filters.date = date;
+    }
+    if (price) {
+      filters.price_range = price;
+    }
+    if (search) {
+      filters.search = search;
+    }
+    
+    onFilterChange(filters);
   };
 
   const clearFilters = () => {
@@ -33,6 +60,8 @@ const EventFilters = () => {
     setSelectedLocation('');
     setSelectedDate('');
     setPriceRange('');
+    setSearchQuery('');
+    onFilterChange({});
   };
 
   return (
@@ -54,6 +83,11 @@ const EventFilters = () => {
           <Input 
             placeholder="Search events, artists, venues..."
             className="pl-10"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              updateFilters(selectedCategories, selectedLocation, selectedDate, priceRange, e.target.value);
+            }}
           />
         </div>
 
@@ -64,13 +98,19 @@ const EventFilters = () => {
             <Input 
               type="date" 
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                updateFilters(selectedCategories, selectedLocation, e.target.value, priceRange, searchQuery);
+              }}
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <Select value={selectedLocation} onValueChange={(value) => {
+              setSelectedLocation(value);
+              updateFilters(selectedCategories, value, selectedDate, priceRange, searchQuery);
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
@@ -84,7 +124,10 @@ const EventFilters = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Price Range</label>
-            <Select value={priceRange} onValueChange={setPriceRange}>
+            <Select value={priceRange} onValueChange={(value) => {
+              setPriceRange(value);
+              updateFilters(selectedCategories, selectedLocation, selectedDate, value, searchQuery);
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Select price range" />
               </SelectTrigger>

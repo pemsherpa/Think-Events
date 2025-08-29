@@ -1,18 +1,26 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Music, Users, Mic, Calendar, Trophy, Theater, BookOpen, Heart } from 'lucide-react';
 
 const CategoryGrid = () => {
+  const navigate = useNavigate();
+  
   const categories = [
-    { name: 'Concerts', icon: Music, color: 'bg-red-500', count: 156 },
-    { name: 'Festivals', icon: Users, color: 'bg-blue-500', count: 89 },
-    { name: 'Comedy Shows', icon: Mic, color: 'bg-yellow-500', count: 67 },
-    { name: 'Conferences', icon: Calendar, color: 'bg-green-500', count: 45 },
-    { name: 'Sports', icon: Trophy, color: 'bg-purple-500', count: 78 },
-    { name: 'Theatre', icon: Theater, color: 'bg-pink-500', count: 34 },
-    { name: 'Workshops', icon: BookOpen, color: 'bg-indigo-500', count: 92 },
-    { name: 'Cultural', icon: Heart, color: 'bg-orange-500', count: 123 },
+    { name: 'Concerts', icon: Music, color: 'bg-red-500', count: 156, slug: 'concerts' },
+    { name: 'Festivals', icon: Users, color: 'bg-blue-500', count: 89, slug: 'festivals' },
+    { name: 'Comedy Shows', icon: Mic, color: 'bg-yellow-500', count: 67, slug: 'comedy-shows' },
+    { name: 'Conferences', icon: Calendar, color: 'bg-green-500', count: 45, slug: 'conferences' },
+    { name: 'Sports', icon: Trophy, color: 'bg-purple-500', count: 78, slug: 'sports' },
+    { name: 'Theatre', icon: Theater, color: 'bg-pink-500', count: 34, slug: 'theatre' },
+    { name: 'Workshops', icon: BookOpen, color: 'bg-indigo-500', count: 92, slug: 'workshops' },
+    { name: 'Cultural', icon: Heart, color: 'bg-orange-500', count: 123, slug: 'cultural' },
   ];
+
+  const handleCategoryClick = (category) => {
+    // Navigate to events page with category filter
+    navigate(`/?category=${category.slug}`);
+  };
 
   return (
     <section className="py-16 bg-gray-50">
@@ -32,6 +40,7 @@ const CategoryGrid = () => {
             return (
               <div 
                 key={category.name}
+                onClick={() => handleCategoryClick(category)}
                 className="bg-white rounded-xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group hover:-translate-y-1"
               >
                 <div className={`${category.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>

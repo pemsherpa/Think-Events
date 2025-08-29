@@ -4,14 +4,15 @@ import { Search, User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const navigationItems = [
-    { title: 'Events', icon: Calendar, path: '/' },
+    { title: 'All Events', icon: Calendar, path: '/events' },
     { title: 'Venues', icon: MapPin, path: '/venues' },
     { title: 'Organizers', icon: Users, path: '/organizers' },
     { title: 'Categories', icon: Building, path: '/categories' }
@@ -80,11 +81,29 @@ const Header = () => {
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
-            {isLoggedIn ? (
-              <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Profile</span>
-              </Button>
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center space-x-2"
+                  onClick={() => handleNavigation('/profile')}
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Profile</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                >
+                  Logout
+                </Button>
+              </div>
             ) : (
               <div className="hidden md:flex space-x-2">
                 <Button variant="ghost" size="sm" onClick={() => handleNavigation('/login')}>Login</Button>
@@ -136,13 +155,30 @@ const Header = () => {
               </div>
 
               {/* Mobile Auth Buttons */}
-              {!isLoggedIn && (
+              {!user ? (
                 <div className="flex space-x-2 pt-3 border-t">
                   <Button variant="ghost" size="sm" className="flex-1" onClick={() => handleNavigation('/login')}>
                     Login
                   </Button>
                   <Button size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={() => handleNavigation('/signup')}>
                     Sign Up
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex space-x-2 pt-3 border-t">
+                  <Button variant="ghost" size="sm" className="flex-1" onClick={() => handleNavigation('/profile')}>
+                    Profile
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                    }}
+                  >
+                    Logout
                   </Button>
                 </div>
               )}

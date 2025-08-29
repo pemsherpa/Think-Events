@@ -2,55 +2,154 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Seat {
   id: string;
   row: string;
   number: number;
-  type: 'VIP' | 'Premium' | 'Standard';
+  type: 'VIP' | 'Premium' | 'Standard' | 'GA' | 'FanPit';
   price: number;
   isAvailable: boolean;
   isSelected: boolean;
+  section?: string;
 }
 
-const SeatSelection = () => {
+interface SeatSelectionProps {
+  onSeatsSelected: (seats: Seat[]) => void;
+  onTotalPriceChange: (price: number) => void;
+}
+
+const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalPriceChange }) => {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const [venueType, setVenueType] = useState<'theater' | 'stadium' | 'movie' | 'openground'>('theater');
 
-  // Mock seat data
-  const generateSeats = (): Seat[] => {
+  // Generate seats based on venue type
+  const generateSeats = (type: string): Seat[] => {
     const seats: Seat[] = [];
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    const seatsPerRow = 10;
 
-    rows.forEach((row, rowIndex) => {
-      for (let i = 1; i <= seatsPerRow; i++) {
-        let type: 'VIP' | 'Premium' | 'Standard' = 'Standard';
-        let price = 500;
+    switch (type) {
+      case 'theater':
+        // Theater layout - traditional rows
+        const theaterRows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        theaterRows.forEach((row, rowIndex) => {
+          const seatsPerRow = 12;
+          for (let i = 1; i <= seatsPerRow; i++) {
+            let type: 'VIP' | 'Premium' | 'Standard' = 'Standard';
+            let price = 800;
 
-        if (rowIndex < 2) {
-          type = 'VIP';
-          price = 2000;
-        } else if (rowIndex < 4) {
-          type = 'Premium';
-          price = 1200;
-        }
+            if (rowIndex < 2) {
+              type = 'VIP';
+              price = 2500;
+            } else if (rowIndex < 4) {
+              type = 'Premium';
+              price = 1500;
+            }
 
-        seats.push({
-          id: `${row}${i}`,
-          row,
-          number: i,
-          type,
-          price,
-          isAvailable: Math.random() > 0.3, // 70% available
-          isSelected: false,
+            seats.push({
+              id: `${row}${i}`,
+              row,
+              number: i,
+              type,
+              price,
+              isAvailable: Math.random() > 0.2,
+              isSelected: false,
+            });
+          }
         });
-      }
-    });
+        break;
+
+      case 'stadium':
+        // Football stadium layout - big sections
+        const stadiumSections = ['North Stand', 'South Stand', 'East Stand', 'West Stand'];
+        stadiumSections.forEach((section, index) => {
+          let type: 'VIP' | 'Premium' | 'Standard' = 'Standard';
+          let price = 600;
+
+          if (index === 0 || index === 1) { // North and South are VIP
+            type = 'VIP';
+            price = 1800;
+          } else { // East and West are Premium
+            type = 'Premium';
+            price = 1200;
+          }
+
+          seats.push({
+            id: section,
+            row: section,
+            number: 1,
+            type,
+            price,
+            isAvailable: Math.random() > 0.2,
+            isSelected: false,
+            section,
+          });
+        });
+        break;
+
+      case 'movie':
+        // Movie hall layout - stadium seating
+        const movieRows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+        movieRows.forEach((row, rowIndex) => {
+          const seatsPerRow = 16;
+          for (let i = 1; i <= seatsPerRow; i++) {
+            let type: 'VIP' | 'Premium' | 'Standard' = 'Standard';
+            let price = 400;
+
+            if (rowIndex < 3) {
+              type = 'VIP';
+              price = 1200;
+            } else if (rowIndex < 6) {
+              type = 'Premium';
+              price = 800;
+            }
+
+            seats.push({
+              id: `${row}${i}`,
+              row,
+              number: i,
+              type,
+              price,
+              isAvailable: Math.random() > 0.1,
+              isSelected: false,
+            });
+          }
+        });
+        break;
+
+      case 'openground':
+        // Open ground layout - big sections
+        const groundSections = ['VIP Section', 'General Admission', 'Fan Pit'];
+        groundSections.forEach((section, index) => {
+          let price = 300;
+          let type: 'VIP' | 'GA' | 'FanPit' = 'GA';
+
+          if (index === 0) { // VIP Section
+            type = 'VIP';
+            price = 2000;
+          } else if (index === 2) { // Fan Pit
+            type = 'FanPit';
+            price = 800;
+          }
+
+          seats.push({
+            id: section,
+            row: section,
+            number: 1,
+            type,
+            price,
+            isAvailable: Math.random() > 0.2,
+            isSelected: false,
+            section,
+          });
+        });
+        break;
+    }
 
     return seats;
   };
 
-  const [seats] = useState<Seat[]>(generateSeats());
+  const [seats] = useState<Seat[]>(generateSeats(venueType));
 
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
@@ -59,9 +158,15 @@ const SeatSelection = () => {
     setSelectedSeats(prev => {
       const isAlreadySelected = prev.some(s => s.id === seatId);
       if (isAlreadySelected) {
-        return prev.filter(s => s.id !== seatId);
+        const newSelection = prev.filter(s => s.id !== seatId);
+        onSeatsSelected(newSelection);
+        onTotalPriceChange(newSelection.reduce((sum, s) => sum + s.price, 0));
+        return newSelection;
       } else {
-        return [...prev, seat];
+        const newSelection = [...prev, seat];
+        onSeatsSelected(newSelection);
+        onTotalPriceChange(newSelection.reduce((sum, s) => sum + s.price, 0));
+        return newSelection;
       }
     });
   };
@@ -73,11 +178,197 @@ const SeatSelection = () => {
     switch (seat.type) {
       case 'VIP': return 'bg-yellow-200 hover:bg-yellow-300 cursor-pointer';
       case 'Premium': return 'bg-blue-200 hover:bg-blue-300 cursor-pointer';
+      case 'FanPit': return 'bg-orange-200 hover:bg-orange-300 cursor-pointer';
+      case 'GA': return 'bg-green-200 hover:bg-green-300 cursor-pointer';
       default: return 'bg-green-200 hover:bg-green-300 cursor-pointer';
     }
   };
 
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+
+  const renderTheaterLayout = () => (
+    <div className="overflow-x-auto">
+      <div className="min-w-max mx-auto">
+        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(row => (
+          <div key={row} className="flex items-center justify-center mb-2">
+            <div className="w-8 text-center font-semibold text-gray-600 mr-4">
+              {row}
+            </div>
+            <div className="flex space-x-1">
+              {seats
+                .filter(seat => seat.row === row)
+                .map(seat => (
+                  <button
+                    key={seat.id}
+                    onClick={() => handleSeatClick(seat.id)}
+                    className={`w-8 h-8 text-xs font-medium rounded transition-all ${getSeatColor(seat)}`}
+                    disabled={!seat.isAvailable}
+                    title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+                  >
+                    {seat.number}
+                  </button>
+                ))}
+            </div>
+            <div className="w-8 text-center font-semibold text-gray-600 ml-4">
+              {row}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderStadiumLayout = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <div className="bg-gradient-to-r from-green-600 to-green-800 text-white py-4 px-8 rounded-lg inline-block text-lg font-semibold">
+          ⚽ FOOTBALL FIELD
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-6">
+        {seats.map(seat => (
+          <button
+            key={seat.id}
+            onClick={() => handleSeatClick(seat.id)}
+            className={`p-8 rounded-xl border-2 transition-all ${getSeatColor(seat)} ${
+              !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+            }`}
+            disabled={!seat.isAvailable}
+            title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+          >
+            <div className="text-center">
+              <h3 className="text-xl font-bold mb-2">{seat.id}</h3>
+              <p className="text-sm mb-2">{seat.type}</p>
+              <p className="text-lg font-semibold">रु {seat.price.toLocaleString()}</p>
+              {!seat.isAvailable && (
+                <p className="text-sm text-gray-500 mt-2">Unavailable</p>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderMovieLayout = () => (
+    <div className="overflow-x-auto">
+      <div className="min-w-max mx-auto">
+        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'].map(row => (
+          <div key={row} className="flex items-center justify-center mb-2">
+            <div className="w-8 text-center font-semibold text-gray-600 mr-4">
+              {row}
+            </div>
+            <div className="flex space-x-1">
+              {seats
+                .filter(seat => seat.row === row)
+                .map(seat => (
+                  <button
+                    key={seat.id}
+                    onClick={() => handleSeatClick(seat.id)}
+                    className={`w-7 h-7 text-xs font-medium rounded transition-all ${getSeatColor(seat)}`}
+                    disabled={!seat.isAvailable}
+                    title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+                  >
+                    {seat.number}
+                  </button>
+                ))}
+            </div>
+            <div className="w-8 text-center font-semibold text-gray-600 ml-4">
+              {row}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderOpenGroundLayout = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-8 rounded-lg inline-block text-lg font-semibold">
+          🎪 OPEN GROUND STAGE
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {seats.map(seat => (
+          <button
+            key={seat.id}
+            onClick={() => handleSeatClick(seat.id)}
+            className={`p-8 rounded-xl border-2 transition-all ${getSeatColor(seat)} ${
+              !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+            }`}
+            disabled={!seat.isAvailable}
+            title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+          >
+            <div className="text-center">
+              <h3 className="text-xl font-bold mb-2">{seat.id}</h3>
+              <p className="text-sm mb-2">{seat.type}</p>
+              <p className="text-lg font-semibold">रु {seat.price.toLocaleString()}</p>
+              {!seat.isAvailable && (
+                <p className="text-sm text-gray-500 mt-2">Unavailable</p>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderLayout = () => {
+    switch (venueType) {
+      case 'theater':
+        return renderTheaterLayout();
+      case 'stadium':
+        return renderStadiumLayout();
+      case 'movie':
+        return renderMovieLayout();
+      case 'openground':
+        return renderOpenGroundLayout();
+      default:
+        return renderTheaterLayout();
+    }
+  };
+
+  const getLegendItems = () => {
+    const baseItems = [
+      { color: 'bg-purple-600', label: 'Selected' },
+      { color: 'bg-gray-300', label: 'Unavailable' }
+    ];
+
+    switch (venueType) {
+      case 'theater':
+        return [
+          { color: 'bg-yellow-200', label: 'VIP (रु 2,500)' },
+          { color: 'bg-blue-200', label: 'Premium (रु 1,500)' },
+          { color: 'bg-green-200', label: 'Standard (रु 800)' },
+          ...baseItems
+        ];
+      case 'stadium':
+        return [
+          { color: 'bg-yellow-200', label: 'VIP Stands (रु 1,800)' },
+          { color: 'bg-blue-200', label: 'Premium Stands (रु 1,200)' },
+          ...baseItems
+        ];
+      case 'movie':
+        return [
+          { color: 'bg-yellow-200', label: 'VIP (रु 1,200)' },
+          { color: 'bg-blue-200', label: 'Premium (रु 800)' },
+          { color: 'bg-green-200', label: 'Standard (रु 400)' },
+          ...baseItems
+        ];
+      case 'openground':
+        return [
+          { color: 'bg-yellow-200', label: 'VIP Section (रु 2,000)' },
+          { color: 'bg-orange-200', label: 'Fan Pit (रु 800)' },
+          { color: 'bg-green-200', label: 'General Admission (रु 300)' },
+          ...baseItems
+        ];
+      default:
+        return baseItems;
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
@@ -86,67 +377,43 @@ const SeatSelection = () => {
         <p className="text-gray-600">Click on available seats to select them</p>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-yellow-200 rounded"></div>
-          <span className="text-sm">VIP (रु 2,000)</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-blue-200 rounded"></div>
-          <span className="text-sm">Premium (रु 1,200)</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-green-200 rounded"></div>
-          <span className="text-sm">Standard (रु 500)</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-purple-600 rounded"></div>
-          <span className="text-sm">Selected</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-gray-300 rounded"></div>
-          <span className="text-sm">Unavailable</span>
-        </div>
+      {/* Venue Type Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Venue Type</label>
+        <Select value={venueType} onValueChange={(value: any) => setVenueType(value)}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select venue type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="theater">Theater</SelectItem>
+            <SelectItem value="stadium">Football Stadium</SelectItem>
+            <SelectItem value="movie">Movie Hall</SelectItem>
+            <SelectItem value="openground">Open Ground</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Stage */}
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+        {getLegendItems().map((item, index) => (
+          <div key={index} className="flex items-center space-x-2">
+            <div className={`w-4 h-4 ${item.color} rounded`}></div>
+            <span className="text-sm">{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Stage/Field */}
       <div className="text-center mb-8">
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-8 rounded-lg inline-block">
-          🎭 STAGE
+          {venueType === 'stadium' ? '⚽ FIELD' : 
+           venueType === 'movie' ? '🎬 SCREEN' : 
+           venueType === 'openground' ? '🎪 STAGE' : '🎭 STAGE'}
         </div>
       </div>
 
       {/* Seat Map */}
-      <div className="overflow-x-auto">
-        <div className="min-w-max mx-auto">
-          {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(row => (
-            <div key={row} className="flex items-center justify-center mb-2">
-              <div className="w-8 text-center font-semibold text-gray-600 mr-4">
-                {row}
-              </div>
-              <div className="flex space-x-1">
-                {seats
-                  .filter(seat => seat.row === row)
-                  .map(seat => (
-                    <button
-                      key={seat.id}
-                      onClick={() => handleSeatClick(seat.id)}
-                      className={`w-8 h-8 text-xs font-medium rounded transition-all ${getSeatColor(seat)}`}
-                      disabled={!seat.isAvailable}
-                      title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
-                    >
-                      {seat.number}
-                    </button>
-                  ))}
-              </div>
-              <div className="w-8 text-center font-semibold text-gray-600 ml-4">
-                {row}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {renderLayout()}
 
       {/* Selection Summary */}
       {selectedSeats.length > 0 && (
@@ -168,9 +435,6 @@ const SeatSelection = () => {
                 ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
               </span>
             </div>
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              Proceed to Payment
-            </Button>
           </div>
         </div>
       )}

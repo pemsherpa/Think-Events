@@ -9,11 +9,14 @@ import Header from '@/components/Layout/Header';
 import SeatSelection from '@/components/Booking/SeatSelection';
 import PaymentMethods from '@/components/Payment/PaymentMethods';
 import BookingForm from '@/components/Booking/BookingForm';
+import OrderSummary from '@/components/Booking/OrderSummary';
 
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [totalPrice, setTotalPrice] = useState(0);
   
   // Mock event data - in real app, this would come from API
   const event = {
@@ -119,52 +122,103 @@ const BookingPage = () => {
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Select Your Seats</h2>
-              <SeatSelection />
-              <div className="mt-6 flex justify-end">
-                <Button 
-                  onClick={() => setActiveTab('info')}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  Continue to Information
-                </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <SeatSelection 
+                    onSeatsSelected={setSelectedSeats}
+                    onTotalPriceChange={setTotalPrice}
+                  />
+                  <div className="mt-6 flex justify-end">
+                    <Button 
+                      onClick={() => setActiveTab('info')}
+                      className="bg-purple-600 hover:bg-purple-700"
+                      disabled={selectedSeats.length === 0}
+                    >
+                      Continue to Information
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-1">
+                <OrderSummary 
+                  selectedSeats={selectedSeats}
+                  totalPrice={totalPrice}
+                  eventTitle={event.title}
+                  eventDate={event.date}
+                  eventTime={event.time}
+                  eventVenue={event.venue}
+                />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="info" className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
-              <BookingForm />
-              <div className="mt-6 flex justify-between">
-                <Button 
-                  variant="outline"
-                  onClick={() => setActiveTab('details')}
-                >
-                  Back to Seat Selection
-                </Button>
-                <Button 
-                  onClick={() => setActiveTab('payment')}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  Continue to Payment
-                </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
+                  <BookingForm />
+                  <div className="mt-6 flex justify-between">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setActiveTab('details')}
+                    >
+                      Back to Seat Selection
+                    </Button>
+                    <Button 
+                      onClick={() => setActiveTab('payment')}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Continue to Payment
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-1">
+                <OrderSummary 
+                  selectedSeats={selectedSeats}
+                  totalPrice={totalPrice}
+                  eventTitle={event.title}
+                  eventDate={event.date}
+                  eventTime={event.time}
+                  eventVenue={event.venue}
+                />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="payment" className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
-              <PaymentMethods />
-              <div className="mt-6 flex justify-start">
-                <Button 
-                  variant="outline"
-                  onClick={() => setActiveTab('info')}
-                >
-                  Back to Information
-                </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
+                  <PaymentMethods 
+                    totalAmount={Math.round(totalPrice * 1.18)}
+                    onPaymentComplete={() => {
+                      // Handle payment completion
+                      alert('Payment completed successfully!');
+                    }}
+                  />
+                  <div className="mt-6 flex justify-start">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setActiveTab('info')}
+                    >
+                      Back to Information
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-1">
+                <OrderSummary 
+                  selectedSeats={selectedSeats}
+                  totalPrice={totalPrice}
+                  eventTitle={event.title}
+                  eventDate={event.date}
+                  eventTime={event.time}
+                  eventVenue={event.venue}
+                />
               </div>
             </div>
           </TabsContent>
