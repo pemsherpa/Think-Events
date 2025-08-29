@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { Search, User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
+import { User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import SearchDropdown from './SearchDropdown';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,12 +71,8 @@ const Header = () => {
           </nav>
 
           {/* Search Bar */}
-          <div className="hidden md:flex items-center relative flex-1 max-w-md mx-6">
-            <Search className="absolute left-3 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search events..."
-              className="pl-10 border-gray-200 focus:border-purple-300 focus:ring-purple-300"
-            />
+          <div className="hidden md:flex items-center">
+            <SearchDropdown />
           </div>
 
           {/* User Actions */}

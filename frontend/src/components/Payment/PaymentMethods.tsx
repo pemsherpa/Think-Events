@@ -62,9 +62,9 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, onPaymentC
                   </div>
                 </Label>
               </div>
-            ))}
-          </div>
-        </RadioGroup>
+            </div>
+          ))}
+        </div>
       </RadioGroup>
 
       {/* Promo Code */}

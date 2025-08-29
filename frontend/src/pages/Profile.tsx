@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import MyBookings from '@/components/Profile/MyBookings';
 import { 
   User, 
   Mail, 
@@ -466,52 +467,8 @@ const Profile = () => {
 
                 {/* Bookings Tab */}
                 <TabsContent value="bookings">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>My Bookings</CardTitle>
-                      <CardDescription>
-                        View and manage your event bookings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Sample booking items */}
-                        <div className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900">Nepal Music Festival 2024</h4>
-                              <p className="text-sm text-gray-600">March 15, 2024 • Kathmandu</p>
-                              <p className="text-sm text-gray-600">Booking ID: #BK123456</p>
-                            </div>
-                            <div className="text-right">
-                              <Badge className="bg-green-100 text-green-800">Confirmed</Badge>
-                              <p className="text-sm font-medium text-gray-900 mt-1">₹2,500</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-gray-900">Tech Conference 2024</h4>
-                              <p className="text-sm text-gray-600">April 20, 2024 • Pokhara</p>
-                              <p className="text-sm text-gray-600">Booking ID: #BK123457</p>
-                            </div>
-                            <div className="text-right">
-                              <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-                              <p className="text-sm font-medium text-gray-900 mt-1">₹1,800</p>
-                            </div>
-                          </div>
-                        </div>
+                  <MyBookings />
 
-                        <div className="text-center py-8">
-                          <Button variant="outline" className="text-purple-600 border-purple-600 hover:bg-purple-50">
-                            View All Bookings
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </TabsContent>
 
                 {/* Security Tab */}

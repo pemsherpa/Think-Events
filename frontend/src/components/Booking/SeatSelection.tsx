@@ -60,30 +60,33 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
         break;
 
       case 'stadium':
-        // Football stadium layout - big sections
+        // Football stadium layout - multiple seats per section
         const stadiumSections = ['North Stand', 'South Stand', 'East Stand', 'West Stand'];
-        stadiumSections.forEach((section, index) => {
+        stadiumSections.forEach((section, sectionIndex) => {
           let type: 'VIP' | 'Premium' | 'Standard' = 'Standard';
-          let price = 600;
+          let basePrice = 600;
 
-          if (index === 0 || index === 1) { // North and South are VIP
+          if (sectionIndex === 0 || sectionIndex === 1) { // North and South are VIP
             type = 'VIP';
-            price = 1800;
+            basePrice = 1800;
           } else { // East and West are Premium
             type = 'Premium';
-            price = 1200;
+            basePrice = 1200;
           }
 
-          seats.push({
-            id: section,
-            row: section,
-            number: 1,
-            type,
-            price,
-            isAvailable: Math.random() > 0.2,
-            isSelected: false,
-            section,
-          });
+          // Create multiple seats per section
+          for (let seatNum = 1; seatNum <= 5; seatNum++) {
+            seats.push({
+              id: `${section}-${seatNum}`,
+              row: section,
+              number: seatNum,
+              type,
+              price: basePrice,
+              isAvailable: Math.random() > 0.2,
+              isSelected: false,
+              section,
+            });
+          }
         });
         break;
 
@@ -118,30 +121,34 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
         break;
 
       case 'openground':
-        // Open ground layout - big sections
+        // Open ground layout - multiple seats per section
         const groundSections = ['VIP Section', 'General Admission', 'Fan Pit'];
-        groundSections.forEach((section, index) => {
-          let price = 300;
+        groundSections.forEach((section, sectionIndex) => {
+          let basePrice = 300;
           let type: 'VIP' | 'GA' | 'FanPit' = 'GA';
 
-          if (index === 0) { // VIP Section
+          if (sectionIndex === 0) { // VIP Section
             type = 'VIP';
-            price = 2000;
-          } else if (index === 2) { // Fan Pit
+            basePrice = 2000;
+          } else if (sectionIndex === 2) { // Fan Pit
             type = 'FanPit';
-            price = 800;
+            basePrice = 800;
           }
 
-          seats.push({
-            id: section,
-            row: section,
-            number: 1,
-            type,
-            price,
-            isAvailable: Math.random() > 0.2,
-            isSelected: false,
-            section,
-          });
+          // Create multiple seats per section
+          const seatsPerSection = sectionIndex === 0 ? 3 : sectionIndex === 1 ? 8 : 5;
+          for (let seatNum = 1; seatNum <= seatsPerSection; seatNum++) {
+            seats.push({
+              id: `${section}-${seatNum}`,
+              row: section,
+              number: seatNum,
+              type,
+              price: basePrice,
+              isAvailable: Math.random() > 0.2,
+              isSelected: false,
+              section,
+            });
+          }
         });
         break;
     }
@@ -226,26 +233,32 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-6">
-        {seats.map(seat => (
-          <button
-            key={seat.id}
-            onClick={() => handleSeatClick(seat.id)}
-            className={`p-8 rounded-xl border-2 transition-all ${getSeatColor(seat)} ${
-              !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
-            }`}
-            disabled={!seat.isAvailable}
-            title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
-          >
-            <div className="text-center">
-              <h3 className="text-xl font-bold mb-2">{seat.id}</h3>
-              <p className="text-sm mb-2">{seat.type}</p>
-              <p className="text-lg font-semibold">रु {seat.price.toLocaleString()}</p>
-              {!seat.isAvailable && (
-                <p className="text-sm text-gray-500 mt-2">Unavailable</p>
-              )}
+      <div className="space-y-8">
+        {['North Stand', 'South Stand', 'East Stand', 'West Stand'].map(section => (
+          <div key={section} className="bg-gray-50 p-6 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{section}</h3>
+            <div className="grid grid-cols-5 gap-3">
+              {seats
+                .filter(seat => seat.section === section)
+                .map(seat => (
+                  <button
+                    key={seat.id}
+                    onClick={() => handleSeatClick(seat.id)}
+                    className={`p-4 rounded-lg border-2 transition-all ${getSeatColor(seat)} ${
+                      !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+                    }`}
+                    disabled={!seat.isAvailable}
+                    title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+                  >
+                    <div className="text-center">
+                      <p className="font-bold text-sm">{seat.number}</p>
+                      <p className="text-xs mb-1">{seat.type}</p>
+                      <p className="text-xs font-semibold">रु {seat.price.toLocaleString()}</p>
+                    </div>
+                  </button>
+                ))}
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
@@ -291,26 +304,32 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {seats.map(seat => (
-          <button
-            key={seat.id}
-            onClick={() => handleSeatClick(seat.id)}
-            className={`p-8 rounded-xl border-2 transition-all ${getSeatColor(seat)} ${
-              !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
-            }`}
-            disabled={!seat.isAvailable}
-            title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
-          >
-            <div className="text-center">
-              <h3 className="text-xl font-bold mb-2">{seat.id}</h3>
-              <p className="text-sm mb-2">{seat.type}</p>
-              <p className="text-lg font-semibold">रु {seat.price.toLocaleString()}</p>
-              {!seat.isAvailable && (
-                <p className="text-sm text-gray-500 mt-2">Unavailable</p>
-              )}
+      <div className="space-y-8">
+        {['VIP Section', 'General Admission', 'Fan Pit'].map(section => (
+          <div key={section} className="bg-gray-50 p-6 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{section}</h3>
+            <div className="grid grid-cols-4 gap-3">
+              {seats
+                .filter(seat => seat.section === section)
+                .map(seat => (
+                  <button
+                    key={seat.id}
+                    onClick={() => handleSeatClick(seat.id)}
+                    className={`p-4 rounded-lg border-2 transition-all ${getSeatColor(seat)} ${
+                      !seat.isAvailable ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-105'
+                    }`}
+                    disabled={!seat.isAvailable}
+                    title={`${seat.id} - ${seat.type} - रु ${seat.price}`}
+                  >
+                    <div className="text-center">
+                      <p className="font-bold text-sm">{seat.number}</p>
+                      <p className="text-xs mb-1">{seat.type}</p>
+                      <p className="text-xs font-semibold">रु {seat.price.toLocaleString()}</p>
+                    </div>
+                  </button>
+                ))}
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>

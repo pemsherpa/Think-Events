@@ -44,6 +44,16 @@ const Index = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    
+    // Update URL params
+    const newSearchParams = new URLSearchParams();
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value) {
+        newSearchParams.set(key, value);
+      }
+    });
+    // Update URL without navigation
+    window.history.replaceState({}, '', `${window.location.pathname}?${newSearchParams.toString()}`);
   };
 
   return (
