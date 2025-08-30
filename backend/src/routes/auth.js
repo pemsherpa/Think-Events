@@ -28,6 +28,9 @@ router.post('/google', [
   handleValidationErrors
 ], authController.googleAuth);
 
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+
 // Protected routes
 router.get('/profile', authenticateToken, authController.getProfile);
 router.put('/profile', [

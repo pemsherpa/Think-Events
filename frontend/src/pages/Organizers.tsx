@@ -15,9 +15,8 @@ interface Organizer {
   email: string;
   phone: string;
   is_verified: boolean;
-  events_count: number;
-  average_rating: number;
-  total_events: number;
+  total_events: string | number; // API returns this as string
+  average_rating: string | number; // API returns this as string
   city?: string;
   state?: string;
 }
@@ -35,17 +34,25 @@ const Organizers = () => {
   const fetchOrganizers = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('Fetching organizers from:', `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/organizers`);
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/organizers`);
       const data = await response.json();
       
+      console.log('Organizers API response:', data);
+      
       if (data.success) {
-        setOrganizers(data.data);
+        const organizersData = data.data || [];
+        console.log('Setting organizers data:', organizersData);
+        setOrganizers(organizersData);
       } else {
-        setError('Failed to load organizers');
+        setError(data.message || 'Failed to load organizers');
       }
     } catch (err) {
       console.error('Error fetching organizers:', err);
-      setError('Failed to load organizers');
+      setError('Failed to load organizers. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -53,6 +60,21 @@ const Organizers = () => {
 
   const handleOrganizerClick = (organizerId: number) => {
     navigate(`/organizer/${organizerId}`);
+  };
+
+  // Convert string numbers to actual numbers for display
+  const formatNumber = (value: string | number) => {
+    if (typeof value === 'string') {
+      return parseInt(value) || 0;
+    }
+    return value || 0;
+  };
+
+  const formatRating = (value: string | number) => {
+    if (typeof value === 'string') {
+      return parseFloat(value) || 0;
+    }
+    return value || 0;
   };
 
   if (loading) {
@@ -75,7 +97,7 @@ const Organizers = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600 mb-4">{error}</p>
             <Button onClick={fetchOrganizers} className="mt-4">
               Try Again
             </Button>
@@ -97,6 +119,9 @@ const Organizers = () => {
         {organizers.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No organizers found.</p>
+            <Button onClick={fetchOrganizers} className="mt-4">
+              Refresh
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,12 +154,12 @@ const Organizers = () => {
                   <div className="space-y-2">
                     <div className="flex items-center text-gray-600 text-sm">
                       <Calendar className="h-4 w-4 mr-2" />
-                      <span>{organizer.total_events || 0} events organized</span>
+                      <span>{formatNumber(organizer.total_events)} events organized</span>
                     </div>
-                    {organizer.average_rating > 0 && (
+                    {formatRating(organizer.average_rating) > 0 && (
                       <div className="flex items-center text-gray-600 text-sm">
                         <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />
-                        <span>{organizer.average_rating.toFixed(1)} rating</span>
+                        <span>{formatRating(organizer.average_rating).toFixed(1)} rating</span>
                       </div>
                     )}
                     {organizer.email && (

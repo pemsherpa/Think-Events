@@ -189,6 +189,18 @@ const Profile = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      console.log('Saving profile data:', profileData);
+      
+      // Validate required fields
+      if (!profileData.first_name || !profileData.last_name) {
+        toast({
+          title: "Validation Error",
+          description: "First name and last name are required.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       await updateProfile(profileData);
       setIsEditing(false);
       toast({
@@ -196,9 +208,16 @@ const Profile = () => {
         description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error('Error updating profile:', error);
+      
+      let errorMessage = "Failed to update profile. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

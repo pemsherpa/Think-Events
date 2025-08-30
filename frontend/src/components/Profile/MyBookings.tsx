@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Ticket, Star, CheckCircle, XCircle, Clock as ClockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ interface Booking {
 }
 
 const MyBookings = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +169,7 @@ const MyBookings = () => {
           <Ticket className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No bookings yet</h3>
           <p className="text-gray-600 mb-4">Start exploring events and make your first booking!</p>
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button onClick={() => navigate('/events')} className="bg-purple-600 hover:bg-purple-700">
             Browse Events
           </Button>
         </div>

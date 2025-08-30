@@ -53,12 +53,25 @@ export const authAPI = {
     body: JSON.stringify({ idToken }),
   }),
   
+  forgotPassword: (email) => apiRequest('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
+  
+  resetPassword: (token, newPassword) => apiRequest('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  }),
+  
   getProfile: () => apiRequest('/api/auth/profile'),
   
-  updateProfile: (profileData) => apiRequest('/api/auth/profile', {
-    method: 'PUT',
-    body: JSON.stringify(profileData),
-  }),
+  updateProfile: (profileData) => {
+    console.log('API: Updating profile with data:', profileData);
+    return apiRequest('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  },
   
   logout: () => apiRequest('/api/auth/logout', {
     method: 'POST',

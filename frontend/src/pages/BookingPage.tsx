@@ -41,6 +41,8 @@ const BookingPage = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState(null);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -65,6 +67,11 @@ const BookingPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFormChange = (data: any, isValid: boolean) => {
+    setFormData(data);
+    setIsFormValid(isValid);
   };
 
   const formatDate = (dateString: string) => {
@@ -234,7 +241,7 @@ const BookingPage = () => {
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
-                  <BookingForm />
+                  <BookingForm onFormChange={handleFormChange} />
                   <div className="mt-6 flex justify-between">
                     <Button 
                       variant="outline"
@@ -245,6 +252,7 @@ const BookingPage = () => {
                     <Button 
                       onClick={() => setActiveTab('payment')}
                       className="bg-purple-600 hover:bg-purple-700"
+                      disabled={!isFormValid}
                     >
                       Continue to Payment
                     </Button>

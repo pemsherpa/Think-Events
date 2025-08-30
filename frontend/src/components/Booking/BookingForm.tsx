@@ -1,12 +1,28 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-const BookingForm = () => {
-  const [formData, setFormData] = useState({
+interface BookingFormProps {
+  onFormChange: (formData: any, isValid: boolean) => void;
+}
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  emergencyContact: string;
+  agreeTerms: boolean;
+  marketingEmails: boolean;
+}
+
+const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -16,12 +32,55 @@ const BookingForm = () => {
     marketingEmails: false
   });
 
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<FormData> = {};
+
+    // Required field validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^\+?[0-9\s\-\(\)]{10,}$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+    if (!formData.agreeTerms) {
+      newErrors.agreeTerms = 'You must agree to the terms and conditions';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  useEffect(() => {
+    const isValid = validateForm();
+    onFormChange(formData, isValid);
+  }, [formData, onFormChange]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof FormData]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   const handleCheckboxChange = (name: string, checked: boolean) => {
@@ -29,6 +88,20 @@ const BookingForm = () => {
       ...prev,
       [name]: checked
     }));
+    
+    // Clear error when user checks the box
+    if (errors[name as keyof FormData]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+  };
+
+  const getInputClassName = (fieldName: keyof FormData) => {
+    return errors[fieldName] 
+      ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+      : '';
   };
 
   return (
@@ -43,8 +116,15 @@ const BookingForm = () => {
             value={formData.firstName}
             onChange={handleInputChange}
             placeholder="Enter your first name"
+            className={getInputClassName('firstName')}
             required
           />
+          {errors.firstName && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.firstName}</AlertDescription>
+            </Alert>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="lastName">Last Name *</Label>
@@ -54,8 +134,15 @@ const BookingForm = () => {
             value={formData.lastName}
             onChange={handleInputChange}
             placeholder="Enter your last name"
+            className={getInputClassName('lastName')}
             required
           />
+          {errors.lastName && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.lastName}</AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
 
@@ -70,8 +157,15 @@ const BookingForm = () => {
             value={formData.email}
             onChange={handleInputChange}
             placeholder="your.email@example.com"
+            className={getInputClassName('email')}
             required
           />
+          {errors.email && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.email}</AlertDescription>
+            </Alert>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Phone Number *</Label>
@@ -82,8 +176,15 @@ const BookingForm = () => {
             value={formData.phone}
             onChange={handleInputChange}
             placeholder="+977 98X-XXXXXXX"
+            className={getInputClassName('phone')}
             required
           />
+          {errors.phone && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.phone}</AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
 
@@ -122,6 +223,12 @@ const BookingForm = () => {
             </a>
           </Label>
         </div>
+        {errors.agreeTerms && (
+          <Alert variant="destructive" className="py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.agreeTerms}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex items-start space-x-3">
           <Checkbox

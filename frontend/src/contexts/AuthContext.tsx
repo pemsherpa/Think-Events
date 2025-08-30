@@ -105,12 +105,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateProfile = async (profileData: any) => {
     try {
+      console.log('AuthContext: Updating profile with data:', profileData);
+      
       const response = await authAPI.updateProfile(profileData);
+      console.log('AuthContext: Profile update response:', response);
+      
       const updatedUser = response.user;
       
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log('AuthContext: Profile updated successfully');
     } catch (error) {
+      console.error('AuthContext: Error updating profile:', error);
       throw error;
     }
   };
