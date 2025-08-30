@@ -1,10 +1,30 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (selectedDate) params.set('date', selectedDate);
+    
+    const queryString = params.toString();
+    navigate(`/events${queryString ? `?${queryString}` : ''}`);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <div className="relative bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white">
       <div className="absolute inset-0 bg-black/20"></div>
@@ -31,6 +51,9 @@ const HeroSection = () => {
                   <Input 
                     placeholder="Search events, artists, venues..."
                     className="pl-10 bg-white text-gray-900 border-0 h-12"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
                   />
                 </div>
               </div>
@@ -39,10 +62,17 @@ const HeroSection = () => {
                 <Input 
                   type="date"
                   className="bg-white text-gray-900 border-0 h-12"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onKeyPress={handleKeyPress}
                 />
               </div>
               
-              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 h-12">
+              <Button 
+                size="lg" 
+                className="bg-orange-500 hover:bg-orange-600 h-12"
+                onClick={handleSearch}
+              >
                 <Ticket className="h-5 w-5 mr-2" />
                 Find Events
               </Button>

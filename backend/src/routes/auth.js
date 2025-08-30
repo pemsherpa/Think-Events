@@ -38,6 +38,8 @@ router.put('/profile', [
   handleValidationErrors
 ], authController.updateProfile);
 
+router.post('/upload-avatar', authenticateToken, authController.uploadAvatar);
+
 router.put('/change-password', [
   authenticateToken,
   body('currentPassword').notEmpty().withMessage('Current password is required'),

@@ -11,6 +11,7 @@ import EventDetails from "./pages/EventDetails";
 import BookingPage from "./pages/BookingPage";
 import Venues from "./pages/Venues";
 import Organizers from "./pages/Organizers";
+import OrganizerDetail from "./pages/OrganizerDetail";
 import Categories from "./pages/Categories";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="/book/:id" element={<BookingPage />} />
               <Route path="/venues" element={<Venues />} />
               <Route path="/organizers" element={<Organizers />} />
+              <Route path="/organizer/:id" element={<OrganizerDetail />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

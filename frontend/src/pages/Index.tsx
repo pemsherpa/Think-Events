@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
 import HeroSection from '@/components/Hero/HeroSection';
 import CategoryGrid from '@/components/Categories/CategoryGrid';
@@ -10,6 +10,7 @@ import { eventsAPI } from '@/services/api';
 
 const Index = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,6 +55,10 @@ const Index = () => {
     });
     // Update URL without navigation
     window.history.replaceState({}, '', `${window.location.pathname}?${newSearchParams.toString()}`);
+  };
+
+  const handleViewAllEvents = () => {
+    navigate('/events');
   };
 
   return (
@@ -103,7 +108,10 @@ const Index = () => {
           )}
 
           <div className="text-center mt-12">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+            <button 
+              onClick={handleViewAllEvents}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+            >
               View All Events
             </button>
           </div>
@@ -129,30 +137,30 @@ const Index = () => {
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Browse Events</a></li>
-                <li><a href="#" className="hover:text-white">Categories</a></li>
-                <li><a href="#" className="hover:text-white">Venues</a></li>
-                <li><a href="#" className="hover:text-white">Organizers</a></li>
+                <li><button onClick={() => navigate('/events')} className="hover:text-white transition-colors">Browse Events</button></li>
+                <li><button onClick={() => navigate('/categories')} className="hover:text-white transition-colors">Categories</button></li>
+                <li><button onClick={() => navigate('/venues')} className="hover:text-white transition-colors">Venues</button></li>
+                <li><button onClick={() => navigate('/organizers')} className="hover:text-white transition-colors">Organizers</button></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Help Center</a></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold mb-4">For Organizers</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Create Event</a></li>
-                <li><a href="#" className="hover:text-white">Organizer Dashboard</a></li>
-                <li><a href="#" className="hover:text-white">Pricing</a></li>
-                <li><a href="#" className="hover:text-white">Resources</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Create Event</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Organizer Dashboard</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Resources</a></li>
               </ul>
             </div>
           </div>

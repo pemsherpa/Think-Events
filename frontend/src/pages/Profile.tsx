@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
@@ -25,7 +25,8 @@ import {
   Save,
   X,
   LogOut,
-  Camera
+  Camera,
+  Upload
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -40,6 +41,7 @@ interface ProfileData {
   city: string;
   state: string;
   zip_code: string;
+  avatar_url?: string;
   preferences: {
     notifications: boolean;
     marketing_emails: boolean;
@@ -64,6 +66,7 @@ const Profile = () => {
     city: '',
     state: '',
     zip_code: '',
+    avatar_url: '',
     preferences: {
       notifications: true,
       marketing_emails: false,
@@ -73,6 +76,8 @@ const Profile = () => {
     }
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -88,6 +93,7 @@ const Profile = () => {
         city: user.city || '',
         state: user.state || '',
         zip_code: user.zip_code || '',
+        avatar_url: user.avatar_url || '',
         preferences: {
           ...prev.preferences,
           ...(user.preferences || {})
@@ -111,6 +117,72 @@ const Profile = () => {
         ...prev,
         [field]: value
       }));
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      // Upload to server
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/upload-avatar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProfileData(prev => ({
+          ...prev,
+          avatar_url: data.data.avatar_url
+        }));
+        toast({
+          title: "Profile picture updated",
+          description: "Your profile picture has been updated successfully.",
+        });
+      } else {
+        throw new Error(data.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload profile picture. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -162,16 +234,39 @@ const Profile = () => {
                 <CardContent className="p-6">
                   <div className="text-center">
                     <div className="relative inline-block mb-4">
-                      <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {user.first_name?.[0]}{user.last_name?.[0]}
-                      </div>
+                      {profileData.avatar_url ? (
+                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                          <img 
+                            src={profileData.avatar_url} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                          {user.first_name?.[0]}{user.last_name?.[0]}
+                        </div>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
                         className="absolute -bottom-2 -right-2 w-8 h-8 p-0 rounded-full"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
                       >
-                        <Camera className="w-4 h-4" />
+                        {uploadingImage ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
                       </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900">
                       {user.first_name} {user.last_name}
@@ -468,7 +563,6 @@ const Profile = () => {
                 {/* Bookings Tab */}
                 <TabsContent value="bookings">
                   <MyBookings />
-
                 </TabsContent>
 
                 {/* Security Tab */}

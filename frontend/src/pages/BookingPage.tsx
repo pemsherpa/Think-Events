@@ -11,31 +11,107 @@ import PaymentMethods from '@/components/Payment/PaymentMethods';
 import BookingForm from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
 
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+  currency: string;
+  total_seats: number;
+  available_seats: number;
+  status: string;
+  images: string[];
+  category_name: string;
+  venue_name: string;
+  venue_city: string;
+  organizer_name: string;
+  rating: number;
+  review_count: number;
+}
+
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  
-  // Mock event data - in real app, this would come from API
-  const event = {
-    id: id || '1',
-    title: 'Sajjan Raj Vaidya Live in Concert',
-    date: 'December 15, 2024',
-    time: '7:00 PM',
-    venue: 'Dashrath Stadium',
-    location: 'Kathmandu, Nepal',
-    price: 1500,
-    image: 'photo-1605810230434-7631ac76ec81',
-    category: 'Concert',
-    organizer: 'Music Nepal',
-    rating: 4.8,
-    reviews: 324,
-    availableSeats: 1250,
-    totalSeats: 2000,
-    description: 'Join us for an unforgettable evening with Sajjan Raj Vaidya, one of Nepal\'s most beloved musicians.'
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      fetchEventDetails();
+    }
+  }, [id]);
+
+  const fetchEventDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/events/${id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setEvent(data.data);
+      } else {
+        setError('Event not found');
+      }
+    } catch (err) {
+      console.error('Error fetching event details:', err);
+      setError('Failed to load event details');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString: string) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p className="mt-2 text-gray-600">Loading event details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-red-600">{error || 'Event not found'}</p>
+            <Button onClick={() => navigate('/events')} className="mt-4">
+              Back to Events
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -56,37 +132,37 @@ const BookingPage = () => {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-6">
             <img 
-              src={`https://images.unsplash.com/${event.image}?w=300&h=200&fit=crop`}
+              src={event.images?.[0] || `https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=300&h=200&fit=crop`}
               alt={event.title}
               className="w-full md:w-64 h-48 object-cover rounded-lg"
             />
             <div className="flex-1">
-              <Badge className="mb-2 bg-purple-100 text-purple-700">{event.category}</Badge>
+              <Badge className="mb-2 bg-purple-100 text-purple-700">{event.category_name}</Badge>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{event.title}</h1>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
                 <div className="flex items-center">
                   <Calendar className="h-5 w-5 mr-3 text-purple-600" />
-                  <span>{event.date}</span>
+                  <span>{formatDate(event.start_date)}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 mr-3 text-purple-600" />
-                  <span>{event.time}</span>
+                  <span>{formatTime(event.start_time)}</span>
                 </div>
                 <div className="flex items-center">
                   <MapPin className="h-5 w-5 mr-3 text-purple-600" />
-                  <span>{event.venue}, {event.location}</span>
+                  <span>{event.venue_name}, {event.venue_city}</span>
                 </div>
                 <div className="flex items-center">
                   <User className="h-5 w-5 mr-3 text-purple-600" />
-                  <span>by {event.organizer}</span>
+                  <span>by {event.organizer_name}</span>
                 </div>
               </div>
 
               <div className="flex items-center mt-4">
                 <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
-                <span className="font-medium">{event.rating}</span>
-                <span className="text-gray-500 ml-1">({event.reviews} reviews)</span>
+                <span className="font-medium">{event.rating || 0}</span>
+                <span className="text-gray-500 ml-1">({event.review_count || 0} reviews)</span>
               </div>
             </div>
           </div>
@@ -145,9 +221,9 @@ const BookingPage = () => {
                   selectedSeats={selectedSeats}
                   totalPrice={totalPrice}
                   eventTitle={event.title}
-                  eventDate={event.date}
-                  eventTime={event.time}
-                  eventVenue={event.venue}
+                  eventDate={formatDate(event.start_date)}
+                  eventTime={formatTime(event.start_time)}
+                  eventVenue={event.venue_name}
                 />
               </div>
             </div>
@@ -180,9 +256,9 @@ const BookingPage = () => {
                   selectedSeats={selectedSeats}
                   totalPrice={totalPrice}
                   eventTitle={event.title}
-                  eventDate={event.date}
-                  eventTime={event.time}
-                  eventVenue={event.venue}
+                  eventDate={formatDate(event.start_date)}
+                  eventTime={formatTime(event.start_time)}
+                  eventVenue={event.venue_name}
                 />
               </div>
             </div>
@@ -215,9 +291,9 @@ const BookingPage = () => {
                   selectedSeats={selectedSeats}
                   totalPrice={totalPrice}
                   eventTitle={event.title}
-                  eventDate={event.date}
-                  eventTime={event.time}
-                  eventVenue={event.venue}
+                  eventDate={formatDate(event.start_date)}
+                  eventTime={formatTime(event.start_time)}
+                  eventVenue={event.venue_name}
                 />
               </div>
             </div>

@@ -52,7 +52,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
               number: i,
               type,
               price,
-              isAvailable: Math.random() > 0.2,
+              isAvailable: true, // All seats are available
               isSelected: false,
             });
           }
@@ -82,7 +82,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
               number: seatNum,
               type,
               price: basePrice,
-              isAvailable: Math.random() > 0.2,
+              isAvailable: true, // All seats are available
               isSelected: false,
               section,
             });
@@ -113,7 +113,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
               number: i,
               type,
               price,
-              isAvailable: Math.random() > 0.1,
+              isAvailable: true, // All seats are available
               isSelected: false,
             });
           }
@@ -144,7 +144,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
               number: seatNum,
               type,
               price: basePrice,
-              isAvailable: Math.random() > 0.2,
+              isAvailable: true, // All seats are available
               isSelected: false,
               section,
             });
