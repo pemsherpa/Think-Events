@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Menu, X, Calendar, MapPin, Users, Building, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchDropdown from './SearchDropdown';
@@ -10,6 +11,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const navigationItems = [
     { title: 'All Events', icon: Calendar, path: '/events' },
@@ -17,6 +19,23 @@ const Header = () => {
     { title: 'Organizers', icon: Users, path: '/organizers' },
     { title: 'Categories', icon: Building, path: '/categories' }
   ];
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -123,7 +142,7 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t bg-white shadow-lg">
+          <div className="lg:hidden border-t bg-white shadow-lg absolute w-full left-0 z-50" ref={menuRef}>
             <div className="px-4 py-4 space-y-3">
               {/* Mobile Search */}
               <div className="md:hidden">

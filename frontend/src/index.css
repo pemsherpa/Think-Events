@@ -99,5 +99,48 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+    
+    body {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+  }
+
+  /* Ensure proper touch targets on mobile */
+  @media (max-width: 768px) {
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Improve mobile scrolling */
+  @media (max-width: 768px) {
+    .overflow-auto, .overflow-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
+@layer utilities {
+  /* Mobile-first responsive utilities */
+  .container-mobile {
+    @apply px-4 mx-auto max-w-full;
+  }
+  
+  .container-tablet {
+    @apply px-6 mx-auto max-w-4xl;
+  }
+  
+  .container-desktop {
+    @apply px-8 mx-auto max-w-7xl;
   }
 }
