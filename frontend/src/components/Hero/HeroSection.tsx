@@ -39,8 +39,8 @@ const HeroSection = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/events?featured=true&limit=5`);
       const data = await response.json();
       
-      if (data.success) {
-        setEvents(data.data || []);
+      if (data.success && Array.isArray(data.data)) {
+        setEvents(data.data);
       }
     } catch (err) {
       console.error('Error fetching featured events:', err);
