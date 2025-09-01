@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import LoadingScreen from "./components/Layout/LoadingScreen";
 import Index from "./pages/Index";
 import EventDetails from "./pages/EventDetails";
@@ -22,6 +23,7 @@ import Profile from "./pages/Profile";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
+const GOOGLE_CLIENT_ID = "715592021110-v6q8btevo8b3b4b6gou6lu58qb0bss02.apps.googleusercontent.com";
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -40,32 +42,34 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/event/:id" element={<EventDetails />} />
-              <Route path="/book/:id" element={<BookingPage />} />
-              <Route path="/venues" element={<Venues />} />
-              <Route path="/organizers" element={<Organizers />} />
-              <Route path="/organizer/:id" element={<OrganizerDetail />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/profile" element={<Profile />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/event/:id" element={<EventDetails />} />
+                <Route path="/book/:id" element={<BookingPage />} />
+                <Route path="/venues" element={<Venues />} />
+                <Route path="/organizers" element={<Organizers />} />
+                <Route path="/organizer/:id" element={<OrganizerDetail />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/profile" element={<Profile />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 };
 

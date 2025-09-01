@@ -24,6 +24,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  loginWithGoogle: (token: string, user: User) => Promise<void>;
   signup: (userData: any) => Promise<void>;
   logout: () => void;
   updateProfile: (profileData: any) => Promise<void>;
@@ -81,6 +82,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (token: string, user: User) => {
+    try {
+      setToken(token);
+      setUser(user);
+      
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const signup = async (userData: any) => {
     try {
       const response = await authAPI.signup(userData);
@@ -127,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     loading,
     login,
+    loginWithGoogle,
     signup,
     logout,
     updateProfile,

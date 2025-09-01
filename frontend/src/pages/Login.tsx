@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import GoogleAuth from '@/components/Auth/GoogleAuth';
+import { Separator } from '@/components/ui/separator';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -92,6 +94,19 @@ const Login: React.FC = () => {
               <span className="text-sm md:text-base">Sign In</span>
             )}
           </Button>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <Separator />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-white px-4 text-sm text-gray-500">or continue with</span>
+            </div>
+          </div>
+
+          {/* Google Authentication */}
+          <div className="flex justify-center">
+            <GoogleAuth />
+          </div>
 
           <div className="text-center">
             <p className="text-gray-600 text-xs md:text-sm">

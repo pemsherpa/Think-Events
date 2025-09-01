@@ -1,14 +1,53 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import EventCarousel from './EventCarousel';
+
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  start_time: string;
+  venue_name: string;
+  venue_city: string;
+  price: number;
+  currency: string;
+  images: string[];
+  category_name: string;
+  available_seats: number;
+  total_seats: number;
+}
 
 const HeroSection = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFeaturedEvents();
+  }, []);
+
+  const fetchFeaturedEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/events?featured=true&limit=5`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setEvents(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching featured events:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -23,6 +62,10 @@ const HeroSection = () => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(e.target.value);
   };
 
   return (
@@ -61,9 +104,9 @@ const HeroSection = () => {
               <div>
                 <Input 
                   type="date"
-                  className="bg-white text-gray-900 border-0 h-12 text-sm md:text-base"
+                  className="bg-white text-gray-900 border-0 h-12 text-sm md:text-base cursor-pointer"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={handleDateChange}
                   onKeyPress={handleKeyPress}
                 />
               </div>
@@ -102,10 +145,12 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Decorative Elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-400/20 rounded-full blur-xl"></div>
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-xl"></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+      {/* Event Carousel */}
+      {!loading && events.length > 0 && (
+        <div className="container mx-auto px-4 pb-16">
+          <EventCarousel events={events} />
+        </div>
+      )}
     </div>
   );
 };
