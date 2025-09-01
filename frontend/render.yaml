@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: think-events-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_APP_NAME
+        value: Think-Events
+      - key: VITE_APP_VERSION
+        value: 1.0.0

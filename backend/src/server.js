@@ -27,7 +27,7 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: config.corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -135,29 +135,20 @@ app.use((error, req, res, next) => {
 // Start server
 const PORT = config.port;
 
-// For Vercel deployment, export the app
-if (process.env.VERCEL) {
-  // Serverless deployment
-  console.log('🚀 Think-Events Backend running on Vercel');
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Think-Events Backend server running on port ${PORT}`);
   console.log(`📊 Environment: ${config.nodeEnv}`);
   console.log(`🌐 Frontend URL: ${config.frontendUrl}`);
-} else {
-  // Local development
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 Think-Events Backend server running on port ${PORT}`);
-    console.log(`📊 Environment: ${config.nodeEnv}`);
-    console.log(`🌐 Frontend URL: ${config.frontendUrl}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  });
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+});
 
-  // Error handling for server
-  server.on('error', (error) => {
-    console.error('Server error:', error);
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use`);
-    }
-  });
-}
+// Error handling for server
+server.on('error', (error) => {
+  console.error('Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+  }
+});
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {

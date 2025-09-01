@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "deploy": "node scripts/deploy.js",
     "migrate": "node src/database/migrate.js",
     "migrate:profile": "node src/database/add_profile_fields.js",
     "migrate:complete": "node src/database/migrate_complete.js",

@@ -19,8 +19,14 @@ export default {
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   
-  // CORS configuration
+  // CORS configuration - allow both localhost and Render URLs
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  corsOrigins: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://think-events-frontend.onrender.com',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   
   // Email configuration
   smtp: {
