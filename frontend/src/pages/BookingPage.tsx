@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, User, Star, ArrowLeft, Ticket, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Layout/Header';
 import SeatSelection from '@/components/Booking/SeatSelection';
 import PaymentMethods from '@/components/Payment/PaymentMethods';
-import BookingForm from '@/components/Booking/BookingForm';
+import BookingForm, { BookingFormRef } from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
 
 interface Event {
@@ -43,6 +43,7 @@ const BookingPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(null);
   const [isFormValid, setIsFormValid] = useState(false);
+  const bookingFormRef = useRef<BookingFormRef>(null);
 
   useEffect(() => {
     if (id) {
@@ -72,6 +73,18 @@ const BookingPage = () => {
   const handleFormChange = (data: any, isValid: boolean) => {
     setFormData(data);
     setIsFormValid(isValid);
+  };
+
+  const handleContinueToPayment = () => {
+    // Trigger validation in the booking form
+    if (bookingFormRef.current) {
+      bookingFormRef.current.triggerValidation();
+    }
+    
+    // Check if form is valid after validation
+    if (isFormValid) {
+      setActiveTab('payment');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -241,7 +254,7 @@ const BookingPage = () => {
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
-                  <BookingForm onFormChange={handleFormChange} />
+                  <BookingForm onFormChange={handleFormChange} ref={bookingFormRef} />
                   <div className="mt-6 flex justify-between">
                     <Button 
                       variant="outline"
@@ -250,7 +263,7 @@ const BookingPage = () => {
                       Back to Seat Selection
                     </Button>
                     <Button 
-                      onClick={() => setActiveTab('payment')}
+                      onClick={handleContinueToPayment}
                       className="bg-purple-600 hover:bg-purple-700"
                       disabled={!isFormValid}
                     >

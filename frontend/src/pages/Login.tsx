@@ -96,14 +96,22 @@ const Login: React.FC = () => {
           <div className="text-center">
             <p className="text-gray-600 text-xs md:text-sm">
               Don't have an account?{' '}
-              <a href="/signup" className="text-purple-600 hover:text-purple-700 font-medium">
+              <button 
+                type="button"
+                onClick={() => navigate('/signup')} 
+                className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+              >
                 Sign up here
-              </a>
+              </button>
             </p>
             <p className="text-gray-600 text-xs md:text-sm mt-2">
-              <a href="/forgot-password" className="text-purple-600 hover:text-purple-700 font-medium">
+              <button 
+                type="button"
+                onClick={() => navigate('/forgot-password')} 
+                className="text-purple-600 hover:text-purple-700 font-medium hover:underline"
+              >
                 Forgot your password?
-              </a>
+              </button>
             </p>
           </div>
         </form>

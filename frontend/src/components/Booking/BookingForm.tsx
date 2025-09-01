@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,11 @@ interface FormData {
   marketingEmails: boolean;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
+export interface BookingFormRef {
+  triggerValidation: () => void;
+}
+
+const BookingForm = forwardRef<BookingFormRef, BookingFormProps>(({ onFormChange }, ref) => {
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -33,6 +37,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [showErrors, setShowErrors] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
@@ -98,6 +103,17 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
     }
   };
 
+  // Function to trigger validation display
+  const triggerValidation = () => {
+    setShowErrors(true);
+    validateForm();
+  };
+
+  // Expose triggerValidation to parent component
+  useImperativeHandle(ref, () => ({
+    triggerValidation
+  }));
+
   const getInputClassName = (fieldName: keyof FormData) => {
     return errors[fieldName] 
       ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
@@ -119,7 +135,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
             className={getInputClassName('firstName')}
             required
           />
-          {errors.firstName && (
+          {errors.firstName && showErrors && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{errors.firstName}</AlertDescription>
@@ -137,7 +153,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
             className={getInputClassName('lastName')}
             required
           />
-          {errors.lastName && (
+          {errors.lastName && showErrors && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{errors.lastName}</AlertDescription>
@@ -160,7 +176,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
             className={getInputClassName('email')}
             required
           />
-          {errors.email && (
+          {errors.email && showErrors && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{errors.email}</AlertDescription>
@@ -179,7 +195,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
             className={getInputClassName('phone')}
             required
           />
-          {errors.phone && (
+          {errors.phone && showErrors && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{errors.phone}</AlertDescription>
@@ -223,7 +239,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
             </a>
           </Label>
         </div>
-        {errors.agreeTerms && (
+        {errors.agreeTerms && showErrors && (
           <Alert variant="destructive" className="py-2">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{errors.agreeTerms}</AlertDescription>
@@ -254,6 +270,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ onFormChange }) => {
       </div>
     </div>
   );
-};
+});
 
 export default BookingForm;
