@@ -1,52 +1,57 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, MapPin, User, Star, Share2, Heart, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
+import { eventsAPI } from '@/services/api';
 
 const EventDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
-  const event = {
-    id: id || '1',
-    title: 'Sajjan Raj Vaidya Live in Concert',
-    date: 'December 15, 2024',
-    time: '7:00 PM',
-    venue: 'Dashrath Stadium',
-    location: 'Kathmandu, Nepal',
-    price: 1500,
-    image: 'photo-1605810230434-7631ac76ec81',
-    category: 'Concert',
-    organizer: 'Music Nepal',
-    rating: 4.8,
-    reviews: 324,
-    availableSeats: 1250,
-    totalSeats: 2000,
-    description: `Join us for an unforgettable evening with Sajjan Raj Vaidya, one of Nepal's most beloved musicians. Experience his soulful melodies and captivating performances in this exclusive live concert at Dashrath Stadium.
+  const [event, setEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    This concert promises to be a magical night filled with music, emotions, and memories that will last a lifetime. Don't miss this opportunity to see Sajjan Raj Vaidya perform his greatest hits along with some exciting new material.`,
-    highlights: [
-      'Live performance by Sajjan Raj Vaidya',
-      'Special guest appearances',
-      'Professional sound and lighting',
-      'Food and beverage stalls available',
-      'Free parking available'
-    ],
-    schedule: [
-      { time: '6:00 PM', activity: 'Gates Open' },
-      { time: '6:30 PM', activity: 'Opening Act' },
-      { time: '7:30 PM', activity: 'Sajjan Raj Vaidya Performance' },
-      { time: '10:00 PM', activity: 'Event Ends' }
-    ]
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await eventsAPI.getById(id);
+        setEvent(res.data);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load event');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [id]);
 
   const handleBookTickets = () => {
+    if (!event) return;
     navigate(`/book/${event.id}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-12 text-center text-gray-600">Loading event...</div>
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-12 text-center text-red-600">{error || 'Event not found'}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,13 +62,13 @@ const EventDetails = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
           <div className="relative">
             <img 
-              src={`https://images.unsplash.com/${event.image}?w=1200&h=400&fit=crop`}
+              src={event.images?.[0] || `https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=1200&h=400&fit=crop`}
               alt={event.title}
               className="w-full h-64 md:h-96 object-cover"
             />
             <div className="absolute inset-0 bg-black/40"></div>
             <div className="absolute bottom-6 left-6 text-white">
-              <Badge className="mb-2 bg-purple-600">{event.category}</Badge>
+              <Badge className="mb-2 bg-purple-600">{event.category_name || 'Event'}</Badge>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">{event.title}</h1>
               <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center">
@@ -146,15 +151,15 @@ const EventDetails = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-5 w-5 mr-3" />
-                  <span>{event.date}</span>
+                  <span>{new Date(event.start_date).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Clock className="h-5 w-5 mr-3" />
-                  <span>{event.time}</span>
+                  <span>{event.start_time}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <MapPin className="h-5 w-5 mr-3" />
-                  <span>{event.venue}, {event.location}</span>
+                  <span>{event.venue_name}, {event.venue_city}</span>
                 </div>
               </div>
 
@@ -162,19 +167,19 @@ const EventDetails = () => {
                 <div className="text-center mb-4">
                   <span className="text-sm text-gray-500">Starting from</span>
                   <div className="text-3xl font-bold text-purple-600">
-                    रु {event.price.toLocaleString()}
+                    रु {(event.price || 0).toLocaleString()}
                   </div>
                 </div>
 
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
                     <span>Seats Available</span>
-                    <span>{event.availableSeats} of {event.totalSeats}</span>
+                    <span>{event.available_seats} of {event.total_seats}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-green-500 h-2 rounded-full" 
-                      style={{ width: `${(event.availableSeats / event.totalSeats) * 100}%` }}
+                      style={{ width: `${event.total_seats ? (event.available_seats / event.total_seats) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>

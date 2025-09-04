@@ -83,7 +83,7 @@ const SearchDropdown = () => {
       setLoading(true);
       try {
         const response = await eventsAPI.getAll({ search: query.trim() });
-        const events = response.data.events || [];
+        const events = response.data?.events || response.data?.data || [];
         
         const searchResults: SearchResult[] = events.slice(0, 5).map(event => ({
           id: event.id,
@@ -171,14 +171,14 @@ const SearchDropdown = () => {
   };
 
   return (
-    <div ref={searchRef} className="relative flex-1 max-w-md mx-6">
+    <div ref={searchRef} className="relative w-full">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input 
-          placeholder="Search events, venues..."
+          placeholder="Search events, artists, venues..."
           value={query}
           onChange={handleInputChange}
-          className="pl-10 pr-10 border-gray-200 focus:border-purple-300 focus:ring-purple-300"
+          className="pl-10 pr-10 h-12 text-base bg-white text-gray-900 border-0 rounded-xl shadow"
           onFocus={() => {
             if (results.length > 0) setShowDropdown(true);
           }}

@@ -84,6 +84,10 @@ export const eventsAPI = {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/api/events${queryString ? `?${queryString}` : ''}`);
   },
+  update: (id, jsonBody) => apiRequest(`/api/events/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(jsonBody),
+  }),
   create: (formData) => {
     const token = getAuthToken();
     return fetch(`${API_URL}/api/events`, {

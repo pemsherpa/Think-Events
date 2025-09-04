@@ -112,7 +112,7 @@ export const getUserBookings = async (req, res) => {
       SELECT 
         b.*,
         e.title as event_title, e.start_date, e.start_time, e.end_time,
-        e.images as event_images,
+        e.images as event_images, e.organizer_id as event_organizer_id,
         v.name as venue_name, v.city as venue_city,
         c.name as category_name
       FROM bookings b
@@ -243,6 +243,13 @@ export const updateBookingStatus = async (req, res) => {
     if (payment_status) {
       updateFields.push(`payment_status = $${paramIndex}`);
       values.push(payment_status);
+      paramIndex++;
+    }
+
+    // If payment marked completed, auto-confirm the booking
+    if (payment_status === 'completed' && booking.status === 'pending') {
+      updateFields.push(`status = $${paramIndex}`);
+      values.push('confirmed');
       paramIndex++;
     }
 

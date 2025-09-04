@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { bookingsAPI } from '@/services/api';
 
 interface Seat {
   id: string;
@@ -18,11 +19,14 @@ interface Seat {
 interface SeatSelectionProps {
   onSeatsSelected: (seats: Seat[]) => void;
   onTotalPriceChange: (price: number) => void;
+  eventId?: number | string;
 }
 
-const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalPriceChange }) => {
+const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalPriceChange, eventId }) => {
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [venueType, setVenueType] = useState<'theater' | 'stadium' | 'movie' | 'openground'>('theater');
+  const [bookedSeatIds, setBookedSeatIds] = useState<string[]>([]);
+  const [openGroundQty, setOpenGroundQty] = useState<number>(0);
 
   // Generate seats based on venue type
   const generateSeats = (type: string): Seat[] => {
@@ -156,7 +160,29 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
     return seats;
   };
 
-  const [seats] = useState<Seat[]>(generateSeats(venueType));
+  const [baseSeats] = useState<Seat[]>(generateSeats(venueType));
+
+  // fetch booked seats for the event
+  useEffect(() => {
+    const loadBooked = async () => {
+      if (!eventId) return;
+      try {
+        const res = await bookingsAPI.getAvailableSeats(eventId);
+        const booked = res.data?.booked_seat_numbers || res.data?.bookedSeats || [];
+        setBookedSeatIds(booked);
+      } catch (e) {
+        console.error('Failed to load booked seats', e);
+      }
+    };
+    loadBooked();
+  }, [eventId]);
+
+  const seats = useMemo(() => {
+    return baseSeats.map((s) => ({
+      ...s,
+      isAvailable: !bookedSeatIds.includes(s.id),
+    }));
+  }, [baseSeats, bookedSeatIds]);
 
   const handleSeatClick = (seatId: string) => {
     const seat = seats.find(s => s.id === seatId);
@@ -329,6 +355,17 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
                   </button>
                 ))}
             </div>
+            {/* Quantity selector for open ground (not seat-wise) */}
+            {section !== 'VIP Section' && (
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <span className="text-sm text-gray-700">Quantity:</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setOpenGroundQty(q => Math.max(0, q - 1))}>-</Button>
+                  <span className="w-8 text-center">{openGroundQty}</span>
+                  <Button onClick={() => setOpenGroundQty(q => q + 1)}>+</Button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -433,6 +470,14 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
 
       {/* Seat Map */}
       {renderLayout()}
+
+      {/* Open ground quantity summary */}
+      {venueType === 'openground' && openGroundQty > 0 && (
+        <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+          <span className="text-gray-800">Tickets (General/Fan Pit): </span>
+          <Badge className="ml-2 bg-purple-100 text-purple-800">{openGroundQty}</Badge>
+        </div>
+      )}
 
       {/* Selection Summary */}
       {selectedSeats.length > 0 && (

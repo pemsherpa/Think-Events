@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { bookingsAPI } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Booking {
   id: number;
@@ -22,6 +23,7 @@ interface Booking {
 
 const MyBookings = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,23 @@ const MyBookings = () => {
     try {
       setLoading(true);
       const response = await bookingsAPI.getUserBookings();
-      setBookings(response.data.bookings || []);
+      const apiBookings = response.data?.bookings || response.data || [];
+      const normalized = apiBookings.map((b: any) => ({
+        id: b.id,
+        event_title: b.event_title,
+        event_date: b.start_date,
+        event_time: b.start_time,
+        venue_name: b.venue_name,
+        venue_city: b.venue_city,
+        seats: b.seat_numbers || [],
+        total_amount: b.total_amount,
+        status: b.status,
+        booking_date: b.booking_date,
+        payment_status: b.payment_status === 'completed' ? 'paid' : (b.payment_status || 'pending'),
+        event_id: b.event_id,
+        event_organizer_id: b.event_organizer_id,
+      }));
+      setBookings(normalized);
       setError(null);
     } catch (err) {
       console.error('Error fetching bookings:', err);
@@ -83,6 +101,115 @@ const MyBookings = () => {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancel = async (bookingId: number) => {
+    try {
+      await bookingsAPI.cancel(bookingId);
+      await fetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCompletePayment = async (bookingId: number) => {
+    try {
+      await bookingsAPI.updateStatus(bookingId, { payment_status: 'completed' });
+      await fetchBookings();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDownloadTicket = (booking: any) => {
+    const customerName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'Guest';
+    const seats = (booking.seats || []).join(', ');
+    const bookingRef = String(booking.id).padStart(6, '0');
+    const eventDate = formatDate(booking.event_date);
+    const eventTime = formatTime(booking.event_time);
+    const total = booking.total_amount;
+
+    const ticketHtml = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ticket - ${booking.event_title}</title>
+    <style>
+      body{margin:0;background:#f3f4f6;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;color:#111827}
+      .wrap{padding:24px}
+      .ticket{max-width:840px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.12);overflow:hidden;display:flex;border:1px solid #e5e7eb}
+      .stub{background:linear-gradient(180deg,#7c3aed,#4f46e5);color:#fff;padding:24px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+      .stub .logo{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-weight:700}
+      .perforation{width:16px;position:relative;background:#fff}
+      .perforation:before, .perforation:after{content:"";position:absolute;left:50%;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:#f3f4f6;border:1px solid #e5e7eb}
+      .perforation:before{top:-8px}
+      .perforation:after{bottom:-8px}
+      .perforation .dashes{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);border-left:2px dashed #e5e7eb}
+      .content{flex:1;padding:24px 28px}
+      h1{margin:0 0 6px;font-size:22px}
+      .meta{display:flex;flex-wrap:wrap;gap:14px;color:#6b7280;font-size:12px;margin-bottom:14px}
+      .row{display:flex;justify-content:space-between;gap:16px}
+      .box{background:#fafafa;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin-top:12px}
+      .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+      .value{font-weight:600;margin-top:4px}
+      .barcode{margin-top:18px;height:48px;background:repeating-linear-gradient(90deg,#111827 0,#111827 2px,transparent 2px,transparent 4px)}
+      .footer{margin-top:18px;text-align:center;color:#6b7280;font-size:11px}
+      @media print{.wrap{padding:0}.ticket{box-shadow:none;border:none}.perforation:before,.perforation:after{background:#fff;border-color:#fff}}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="ticket">
+        <div class="stub">
+          <div class="logo">TE</div>
+          <div style="font-size:12px;opacity:.95">Think Event</div>
+          <div style="font-size:11px;opacity:.8">Ref #${bookingRef}</div>
+        </div>
+        <div class="perforation"><div class="dashes"></div></div>
+        <div class="content">
+          <h1>${booking.event_title}</h1>
+          <div class="meta">${booking.venue_name}, ${booking.venue_city}</div>
+          <div class="row">
+            <div class="box" style="flex:1">
+              <div class="label">Attendee</div>
+              <div class="value">${customerName || '—'}</div>
+            </div>
+            <div class="box" style="width:180px">
+              <div class="label">Date</div>
+              <div class="value">${eventDate}</div>
+            </div>
+            <div class="box" style="width:120px">
+              <div class="label">Time</div>
+              <div class="value">${eventTime}</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="box" style="flex:1">
+              <div class="label">Seats</div>
+              <div class="value">${seats || 'General Admission'}</div>
+            </div>
+            <div class="box" style="width:160px">
+              <div class="label">Amount</div>
+              <div class="value">रु ${Number(total).toLocaleString()}</div>
+            </div>
+          </div>
+          <div class="barcode"></div>
+          <div class="footer">Please bring a valid ID. This ticket is non-transferable. Powered by Think Event.</div>
+        </div>
+      </div>
+    </div>
+    <script>window.onload = () => setTimeout(() => window.print(), 300);</script>
+  </body>
+</html>`;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(ticketHtml);
+      printWindow.document.close();
     }
   };
 
@@ -185,8 +312,13 @@ const MyBookings = () => {
           {Object.entries(filteredBookings).map(([status, statusBookings]) => (
             <TabsContent key={status} value={status} className="space-y-4">
               {statusBookings.map((booking) => (
-                <div key={booking.id} className="bg-white rounded-lg shadow-lg p-6 border">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div key={booking.id} className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+                  <div className="flex items-stretch">
+                    <div className="hidden md:flex bg-gradient-to-b from-purple-600 to-indigo-600 text-white px-4 py-6 items-center justify-center">
+                      <Ticket className="h-7 w-7" />
+                    </div>
+                    <div className="flex-1 p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">{booking.event_title}</h3>
@@ -248,23 +380,31 @@ const MyBookings = () => {
 
                     <div className="flex flex-col space-y-2 lg:ml-4">
                       {booking.status === 'pending' && (
-                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleCompletePayment(booking.id)}>
                           Complete Payment
                         </Button>
                       )}
                       {booking.status === 'confirmed' && (
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleDownloadTicket(booking)}>
                           Download Ticket
                         </Button>
                       )}
                       {booking.status !== 'cancelled' && (
-                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancel(booking.id)}>
                           Cancel Booking
+                        </Button>
+                      )}
+                      {user && (user.id === (booking as any).event_organizer_id) && (
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate(`/events/edit/${(booking as any).event_id}`)}>
+                          Edit Event
                         </Button>
                       )}
                     </div>
                   </div>
+                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 h-1"></div>
                 </div>
+              </div>
+            </div>
               ))}
             </TabsContent>
           ))}

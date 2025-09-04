@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Layout/Header';
 import SeatSelection from '@/components/Booking/SeatSelection';
 import PaymentMethods from '@/components/Payment/PaymentMethods';
+import { bookingsAPI } from '@/services/api';
 import BookingForm, { BookingFormRef } from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
 
@@ -224,6 +225,7 @@ const BookingPage = () => {
                   <SeatSelection 
                     onSeatsSelected={setSelectedSeats}
                     onTotalPriceChange={setTotalPrice}
+                    eventId={id as any}
                   />
                   <div className="mt-6 flex justify-end">
                     <Button 
@@ -292,9 +294,26 @@ const BookingPage = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
                   <PaymentMethods 
                     totalAmount={Math.round(totalPrice * 1.18)}
-                    onPaymentComplete={() => {
-                      // Handle payment completion
-                      alert('Payment completed successfully!');
+                    onPaymentComplete={async () => {
+                      try {
+                        // Create booking with selected seats
+                        const seat_numbers = selectedSeats.map((s: any) => s.id);
+                        const quantity = seat_numbers.length;
+                        const total_amount = Math.round(totalPrice * 1.18);
+                        const res = await bookingsAPI.create({
+                          event_id: event?.id,
+                          seat_numbers,
+                          quantity,
+                          total_amount,
+                          payment_method: 'wallet'
+                        });
+                        // Mark payment completed
+                        await bookingsAPI.updateStatus(res.data.id || res.data?.data?.id || res.id, { payment_status: 'completed' });
+                        alert('Payment completed successfully!');
+                      } catch (e) {
+                        console.error(e);
+                        alert('Failed to complete payment');
+                      }
                     }}
                   />
                   <div className="mt-6 flex justify-start">

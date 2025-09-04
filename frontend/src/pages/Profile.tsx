@@ -632,9 +632,14 @@ const Profile = () => {
                                 <p className="font-medium">{e.title}</p>
                                 <p className="text-sm text-gray-600">{new Date(e.start_date).toLocaleString()} • {e.total_seats} seats</p>
                               </div>
-                              <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(e.id)}>
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => navigate(`/events/edit/${e.id}`)}>
+                                  Edit
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(e.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>

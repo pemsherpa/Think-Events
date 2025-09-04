@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Ticket } from 'lucide-react';
+import { Search, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import SearchDropdown from '@/components/Layout/SearchDropdown';
 import EventCarousel from './EventCarousel';
+import { eventsAPI } from '@/services/api';
 
 interface Event {
   id: number;
@@ -25,7 +27,7 @@ interface Event {
 const HeroSection = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  // Date input removed for simpler UX
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,12 +38,9 @@ const HeroSection = () => {
   const fetchFeaturedEvents = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/events?featured=true&limit=5`);
-      const data = await response.json();
-      
-      if (data.success && Array.isArray(data.data)) {
-        setEvents(data.data);
-      }
+      const data = await eventsAPI.getAll({ featured: 'true', limit: 5 });
+      const list = data.data || data.events || [];
+      if (Array.isArray(list)) setEvents(list);
     } catch (err) {
       console.error('Error fetching featured events:', err);
     } finally {
@@ -52,7 +51,6 @@ const HeroSection = () => {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
-    if (selectedDate) params.set('date', selectedDate);
     
     const queryString = params.toString();
     navigate(`/events${queryString ? `?${queryString}` : ''}`);
@@ -64,9 +62,7 @@ const HeroSection = () => {
     }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
-  };
+  // Date handling removed
 
   return (
     <div className="relative bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 text-white">
@@ -86,40 +82,14 @@ const HeroSection = () => {
           </p>
 
           {/* Search Section */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 md:p-6 mb-8 border border-white/20">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
-              <div className="md:col-span-2">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 md:p-4 mb-8 border border-white/20 shadow-xl">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
+              <div className="flex-1 min-w-0">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input 
-                    placeholder="Search events, artists, venues..."
-                    className="pl-10 bg-white text-gray-900 border-0 h-12 text-sm md:text-base"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
+                  <SearchDropdown />
                 </div>
               </div>
-              
-              <div>
-                <Input 
-                  type="date"
-                  className="bg-white text-gray-900 border-0 h-12 text-sm md:text-base cursor-pointer"
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                  onKeyPress={handleKeyPress}
-                />
-              </div>
-              
-              <Button 
-                size="lg" 
-                className="bg-orange-500 hover:bg-orange-600 h-12 text-sm md:text-base"
-                onClick={handleSearch}
-              >
-                <Ticket className="h-5 w-5 mr-2" />
-                <span className="hidden sm:inline">Find Events</span>
-                <span className="sm:hidden">Search</span>
-              </Button>
+              {/* Removed button; search occupies full bar */}
             </div>
           </div>
 
