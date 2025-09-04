@@ -527,3 +527,25 @@ export const deleteEvent = async (req, res) => {
     });
   }
 };
+
+// Get events created by the authenticated user
+export const getMyEvents = async (req, res) => {
+  try {
+    const eventsResult = await query(`
+      SELECT 
+        id, title, description, start_date, start_time, end_time, price, currency,
+        total_seats, available_seats, status, images, tags, created_at
+      FROM events
+      WHERE organizer_id = $1
+      ORDER BY created_at DESC
+    `, [req.user.id]);
+
+    res.json({
+      success: true,
+      data: eventsResult.rows
+    });
+  } catch (error) {
+    console.error('Get my events error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};

@@ -28,6 +28,7 @@ router.get('/categories', eventController.getCategories);
 router.get('/venues', eventController.getVenues);
 router.get('/:id', eventController.getEventById);
 router.get('/venues/:id', eventController.getVenueById);
+router.get('/me/list', authenticateToken, eventController.getMyEvents);
 
 // Protected routes (authenticated users)
 router.post('/', [

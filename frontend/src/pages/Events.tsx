@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
-import { Link } from 'react-router-dom';
 import EventFilters from '@/components/Events/EventFilters';
 import EventCard from '@/components/Events/EventCard';
 import { eventsAPI } from '@/services/api';
@@ -14,7 +13,6 @@ const Events = () => {
   const [filters, setFilters] = useState({});
 
   useEffect(() => {
-    // Get filters from URL params
     const category = searchParams.get('category');
     const location = searchParams.get('location');
     const date = searchParams.get('date');
@@ -52,8 +50,6 @@ const Events = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    
-    // Update URL params
     const newSearchParams = new URLSearchParams();
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value) {
@@ -66,22 +62,32 @@ const Events = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
+      {/* Hero banner similar feel */}
+      <div className="bg-[#0E5AA7] text-white">
+        <div className="container mx-auto px-4 py-10 lg:py-14 flex flex-col lg:flex-row gap-8 items-center">
+          <div className="w-full max-w-xl rounded-xl overflow-hidden shadow-lg bg-white">
+            <img src="/placeholder.svg" alt="Event poster" className="w-full h-64 object-cover" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-3xl lg:text-5xl font-extrabold mb-4">Discover Events Near You</h1>
+            <p className="text-white/90 text-lg mb-6">Find concerts, festivals, sports and more. Book now to secure your seat.</p>
+            <div className="flex gap-3">
+              <Link to="/events/create" className="bg-white text-[#0E5AA7] px-6 py-3 rounded-lg font-semibold">Create Event</Link>
+              <Link to="/events" className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold">Book Now</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
-        {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            All Events
-          </h1>
-          <p className="text-lg text-gray-600">
-            Discover amazing events happening across Nepal
-          </p>
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">All Events</h2>
+          <p className="text-lg text-gray-600">Handpicked events across Nepal</p>
         </div>
 
-        {/* Filters */}
         <EventFilters onFilterChange={handleFilterChange} />
-        
-        {/* Events Grid */}
+
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -99,11 +105,6 @@ const Events = () => {
           </div>
         ) : events.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33" />
-              </svg>
-            </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
             <p className="text-gray-600 mb-4">Try adjusting your filters or search criteria.</p>
             <button 
@@ -121,7 +122,6 @@ const Events = () => {
             <div className="mb-6 flex items-center justify-between">
               <p className="text-gray-600">
                 Showing {events.length} event{events.length !== 1 ? 's' : ''}
-                {Object.keys(filters).length > 0 && ' with applied filters'}
               </p>
               <Link
                 to="/events/create"
@@ -130,29 +130,12 @@ const Events = () => {
                 Create Event
               </Link>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map(event => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
-
-            {events.length > 0 && (
-              <div className="text-center mt-12">
-                <p className="text-gray-600 mb-4">
-                  Can't find what you're looking for?
-                </p>
-                <button 
-                  onClick={() => {
-                    setFilters({});
-                    setSearchParams({});
-                  }}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
-                >
-                  View All Events
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>

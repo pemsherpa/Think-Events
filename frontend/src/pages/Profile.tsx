@@ -26,9 +26,10 @@ import {
   X,
   LogOut,
   Camera,
-  Upload
+  Trash2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { eventsAPI } from '@/services/api';
 
 interface ProfileData {
   first_name: string;
@@ -78,6 +79,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [myEvents, setMyEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -99,8 +102,32 @@ const Profile = () => {
           ...(user.preferences || {})
         }
       }));
+      loadMyEvents();
     }
   }, [user]);
+
+  const loadMyEvents = async () => {
+    try {
+      setLoadingEvents(true);
+      const res = await eventsAPI.getMine();
+      setMyEvents(res.data || res.data?.events || res || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    if (!confirm('Delete this event?')) return;
+    try {
+      await eventsAPI.delete(id);
+      setMyEvents(prev => prev.filter(e => e.id !== id));
+      toast({ title: 'Event deleted' });
+    } catch (e:any) {
+      toast({ title: 'Failed to delete', description: e.message, variant: 'destructive' });
+    }
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     if (field.includes('.')) {
@@ -321,10 +348,11 @@ const Profile = () => {
             {/* Right Content - Profile Details */}
             <div className="lg:col-span-3">
               <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="personal">Personal Info</TabsTrigger>
                   <TabsTrigger value="preferences">Preferences</TabsTrigger>
                   <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+                  <TabsTrigger value="myevents">My Events</TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
@@ -582,6 +610,37 @@ const Profile = () => {
                 {/* Bookings Tab */}
                 <TabsContent value="bookings">
                   <MyBookings />
+                </TabsContent>
+
+                {/* My Events Tab */}
+                <TabsContent value="myevents">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>My Created Events</CardTitle>
+                      <CardDescription>Events you created. You can delete them.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingEvents ? (
+                        <p>Loading...</p>
+                      ) : myEvents.length === 0 ? (
+                        <p className="text-gray-600">You have not created any events yet.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {myEvents.map((e) => (
+                            <div key={e.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <p className="font-medium">{e.title}</p>
+                                <p className="text-sm text-gray-600">{new Date(e.start_date).toLocaleString()} • {e.total_seats} seats</p>
+                              </div>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteEvent(e.id)}>
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* Security Tab */}

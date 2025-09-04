@@ -94,6 +94,8 @@ export const eventsAPI = {
       body: formData,
     }).then(handleResponse);
   },
+  delete: (id) => apiRequest(`/api/events/${id}`, { method: 'DELETE' }),
+  getMine: () => apiRequest('/api/events/me/list'),
   
   getById: (id) => apiRequest(`/api/events/${id}`),
   

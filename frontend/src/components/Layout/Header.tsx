@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Menu, X, Calendar, MapPin, Users, Building, Search } from 'lucide-react';
+import { User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import SearchDropdown from './SearchDropdown';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,12 +85,10 @@ const Header = () => {
                 <span>{item.title}</span>
               </Button>
             ))}
+            <Button size="sm" className="ml-2 bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleNavigation('/events/create')}>
+              Create Event
+            </Button>
           </nav>
-
-          {/* Search Bar */}
-          <div className="hidden md:flex items-center">
-            <SearchDropdown />
-          </div>
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
@@ -144,17 +140,6 @@ const Header = () => {
         {isMenuOpen && (
           <div className="lg:hidden border-t bg-white shadow-lg absolute w-full left-0 z-50" ref={menuRef}>
             <div className="px-4 py-4 space-y-3">
-              {/* Mobile Search */}
-              <div className="md:hidden">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    placeholder="Search events..."
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-
               {/* Mobile Navigation */}
               <div className="space-y-1">
                 {navigationItems.map((item) => (
@@ -167,6 +152,9 @@ const Header = () => {
                     <span>{item.title}</span>
                   </button>
                 ))}
+                <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleNavigation('/events/create')}>
+                  Create Event
+                </Button>
               </div>
 
               {/* Mobile Auth Buttons */}
