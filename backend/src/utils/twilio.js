@@ -1,7 +1,11 @@
 import twilio from 'twilio';
 import config from '../config/config.js';
 
-const client = twilio(config.twilio.accountSid, config.twilio.authToken);
+const hasTwilioCreds = Boolean(config.twilio.accountSid && config.twilio.authToken);
+let client = null;
+if (hasTwilioCreds) {
+  client = twilio(config.twilio.accountSid, config.twilio.authToken);
+}
 
 // Format phone number for India (+91) and Nepal (+977)
 export const formatPhoneNumber = (phoneNumber) => {
@@ -74,6 +78,10 @@ export const generateOTP = () => {
 // Send OTP via SMS with proper international handling
 export const sendOTP = async (phoneNumber, otpCode) => {
   try {
+    if (!hasTwilioCreds) {
+      const formatted = formatPhoneNumber(phoneNumber);
+      return { success: true, messageId: 'twilio_disabled_dev', formattedPhone: formatted, warning: 'Twilio credentials not configured; OTP simulated.' };
+    }
     // Format and validate phone number
     const validation = validatePhoneNumber(phoneNumber);
     if (!validation.valid) {
