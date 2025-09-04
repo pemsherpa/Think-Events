@@ -6,6 +6,7 @@ import config from '../config/config.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { validatePhoneNumber } from '../utils/twilio.js';
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
@@ -67,35 +68,41 @@ export const signup = async (req, res) => {
       });
     }
 
+    // Validate and format phone number if provided
+    let formattedPhone = null;
+    if (phone) {
+      const phoneValidation = validatePhoneNumber(phone);
+      if (!phoneValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: phoneValidation.message
+        });
+      }
+      formattedPhone = phoneValidation.formatted;
+    }
+
     // Hash password
     const saltRounds = config.bcryptRounds;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Create user
+    // Create user without OTP (temporarily disabled phone verification)
     const newUser = await query(
       `INSERT INTO users (username, email, password_hash, first_name, last_name, phone, is_verified) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       RETURNING id, username, email, first_name, last_name, phone, is_organizer, is_verified, created_at`,
-      [username, email, passwordHash, first_name, last_name, phone, false]
+       RETURNING id, username, email, first_name, last_name, phone, is_organizer, is_verified`,
+      [username, email, passwordHash, first_name, last_name, formattedPhone, true]
     );
 
     const user = newUser.rows[0];
+
+    // Generate token and return immediately (no OTP flow)
     const token = generateToken(user.id);
 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        phone: user.phone,
-        is_organizer: user.is_organizer,
-        is_verified: user.is_verified
-      }
+      user
     });
 
   } catch (error) {
@@ -103,6 +110,146 @@ export const signup = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+};
+
+// Verify OTP for signup
+export const verifySignupOTP = async (req, res) => {
+  try {
+    const { userId, otpCode } = req.body;
+
+    if (!userId || !otpCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and OTP code are required'
+      });
+    }
+
+    // Get user and OTP details
+    const user = await query(
+      'SELECT id, otp_code, otp_expires, username, email, first_name, last_name, phone, is_organizer FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = user.rows[0];
+
+    // Verify OTP
+    const otpVerification = verifyOTP(userData.otp_code, userData.otp_expires, otpCode);
+    
+    if (!otpVerification.valid) {
+      return res.status(400).json({
+        success: false,
+        message: otpVerification.message
+      });
+    }
+
+    // Mark user as verified and clear OTP
+    await query(
+      'UPDATE users SET is_verified = $1, phone_verified = $2, otp_code = NULL, otp_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [true, true, userId]
+    );
+
+    // Generate token
+    const token = generateToken(userId);
+
+    res.json({
+      success: true,
+      message: 'Phone number verified successfully!',
+      token,
+      user: {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        phone: userData.phone,
+        is_organizer: userData.is_organizer,
+        is_verified: true,
+        phone_verified: true
+      }
+    });
+
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Resend OTP for signup
+export const resendSignupOTP = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Get user details
+    const user = await query(
+      'SELECT id, phone, is_verified FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = user.rows[0];
+
+    if (userData.is_verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already verified'
+      });
+    }
+
+    // Generate new OTP
+    const otpCode = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Update OTP in database
+    await query(
+      'UPDATE users SET otp_code = $1, otp_expires = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [otpCode, otpExpires, userId]
+    );
+
+    // Send new OTP
+    const smsResult = await sendOTP(userData.phone, otpCode);
+    
+    if (!smsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'New OTP sent successfully to your phone number.'
+    });
+
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend OTP'
     });
   }
 };
@@ -293,7 +440,7 @@ export const updateProfile = async (req, res) => {
     } = req.body;
 
     // Update basic user info
-    const updatedUser = await query(
+    await query(
       `UPDATE users 
        SET first_name = COALESCE($1, first_name), 
            last_name = COALESCE($2, last_name), 
@@ -305,8 +452,7 @@ export const updateProfile = async (req, res) => {
            state = COALESCE($8, state),
            zip_code = COALESCE($9, zip_code),
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10 
-       RETURNING id, username, email, first_name, last_name, phone, date_of_birth, gender, address, city, state, zip_code, avatar_url, is_organizer, is_verified`,
+       WHERE id = $10`,
       [first_name, last_name, phone, date_of_birth, gender, address, city, state, zip_code, req.user.id]
     );
 
@@ -314,12 +460,19 @@ export const updateProfile = async (req, res) => {
     if (preferences) {
       await query(
         `UPDATE users 
-         SET preferences = COALESCE($1, preferences),
+         SET preferences = $1,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $2`,
         [JSON.stringify(preferences), req.user.id]
       );
     }
+
+    // Get the complete updated user data
+    const updatedUser = await query(
+      `SELECT id, username, email, first_name, last_name, phone, date_of_birth, gender, address, city, state, zip_code, avatar_url, is_organizer, is_verified, preferences, created_at, updated_at 
+       FROM users WHERE id = $1`,
+      [req.user.id]
+    );
 
     res.json({
       success: true,
@@ -450,53 +603,74 @@ export const logout = async (req, res) => {
   }
 };
 
-// Forgot password - send reset email
+// Forgot password - send OTP to phone
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { phone } = req.body;
 
-    if (!email) {
+    if (!phone) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required'
+        message: 'Phone number is required'
       });
     }
 
+    // Validate and format phone number
+    const phoneValidation = validatePhoneNumber(phone);
+    if (!phoneValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: phoneValidation.message
+      });
+    }
+
+    const formattedPhone = phoneValidation.formatted;
+
     // Check if user exists
     const user = await query(
-      'SELECT id, username, first_name, last_name FROM users WHERE email = $1',
-      [email]
+      'SELECT id, username, first_name, last_name FROM users WHERE phone = $1',
+      [formattedPhone]
     );
 
     if (user.rows.length === 0) {
       // Don't reveal if user exists or not for security
       return res.json({
         success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.'
+        message: 'If an account with that phone number exists, an OTP has been sent.'
       });
     }
 
     const userData = user.rows[0];
     
-    // Generate reset token (valid for 1 hour)
-    const resetToken = jwt.sign(
-      { userId: userData.id, type: 'password_reset' },
-      config.jwtSecret,
-      { expiresIn: '1h' }
-    );
+    // Generate OTP
+    const otpCode = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Store reset token in database
+    // Store OTP in database
     await query(
-      'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
-      [resetToken, new Date(Date.now() + 60 * 60 * 1000), userData.id]
+      'UPDATE users SET otp_code = $1, otp_expires = $2 WHERE id = $3',
+      [otpCode, otpExpires, userData.id]
     );
 
-    // TODO: Send email with reset link
-    // For now, just return the token (in production, send email)
+    // Send OTP via SMS
+    const smsResult = await sendOTP(formattedPhone, otpCode);
+    
+    if (!smsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: `Failed to send OTP: ${smsResult.error}`
+      });
+    }
+
     res.json({
       success: true,
-      message: 'Password reset link sent to your email',
-      resetToken: config.nodeEnv === 'development' ? resetToken : undefined
+      message: 'OTP sent to your phone number',
+      requiresOTP: true,
+      userId: userData.id,
+      phoneInfo: {
+        formatted: formattedPhone,
+        country: phoneValidation.country
+      }
     });
 
   } catch (error) {
@@ -504,6 +678,132 @@ export const forgotPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to process password reset request'
+    });
+  }
+};
+
+// Verify OTP for password reset
+export const verifyResetOTP = async (req, res) => {
+  try {
+    const { userId, otpCode } = req.body;
+
+    if (!userId || !otpCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and OTP code are required'
+      });
+    }
+
+    // Get user and OTP details
+    const user = await query(
+      'SELECT id, otp_code, otp_expires FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = user.rows[0];
+
+    // Verify OTP
+    const otpVerification = verifyOTP(userData.otp_code, userData.otp_expires, otpCode);
+    
+    if (!otpVerification.valid) {
+      return res.status(400).json({
+        success: false,
+        message: otpVerification.message
+      });
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const resetToken = jwt.sign(
+      { userId: userData.id, type: 'password_reset' },
+      config.jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    // Store reset token and clear OTP
+    await query(
+      'UPDATE users SET reset_token = $1, reset_token_expires = $2, otp_code = NULL, otp_expires = NULL WHERE id = $3',
+      [resetToken, new Date(Date.now() + 60 * 60 * 1000), userData.id]
+    );
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully. You can now reset your password.',
+      resetToken: config.nodeEnv === 'development' ? resetToken : undefined
+    });
+
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify OTP'
+    });
+  }
+};
+
+// Resend OTP for password reset
+export const resendResetOTP = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Get user details
+    const user = await query(
+      'SELECT id, phone FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = user.rows[0];
+
+    // Generate new OTP
+    const otpCode = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Update OTP in database
+    await query(
+      'UPDATE users SET otp_code = $1, otp_expires = $2 WHERE id = $3',
+      [otpCode, otpExpires, userId]
+    );
+
+    // Send new OTP
+    const smsResult = await sendOTP(userData.phone, otpCode);
+    
+    if (!smsResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP. Please try again.'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'New OTP sent successfully to your phone number.'
+    });
+
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to resend OTP'
     });
   }
 };

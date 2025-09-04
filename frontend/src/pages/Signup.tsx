@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import GoogleAuth from '@/components/Auth/GoogleAuth';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 
 const Signup: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -12,8 +14,10 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
   const navigate = useNavigate();
   const { signup } = useAuth();
 
@@ -23,12 +27,13 @@ const Signup: React.FC = () => {
     setError(null);
     
     try {
-      await signup({ 
+      const response = await signup({ 
         username, 
         email, 
         password, 
         first_name: firstName, 
-        last_name: lastName 
+        last_name: lastName,
+        phone
       });
       navigate('/');
     } catch (err: any) {
@@ -37,6 +42,74 @@ const Signup: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // OTP flow temporarily disabled
+
+  const handleResendOTP = async () => {};
+
+  if (showOTPVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Verify Your Phone</CardTitle>
+            <CardDescription>
+              Enter the 6-digit code sent to your phone number
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e)=>e.preventDefault()} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  OTP Code
+                </label>
+                <Input
+                  type="text"
+                  value={''}
+                  onChange={() => {}}
+                  placeholder="Enter 6-digit code"
+                  className="w-full text-center text-lg tracking-widest"
+                  maxLength={6}
+                  required
+                />
+              </div>
+              
+              <Button 
+                type="button" 
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
+                disabled
+              >
+                Verify & Complete Signup
+              </Button>
+
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={()=>{}}
+                  disabled
+                  className="text-purple-600 hover:text-purple-700"
+                >
+                  Resend OTP (disabled)
+                </Button>
+              </div>
+
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowOTPVerification(false)}
+                  className="text-gray-600 hover:text-gray-700"
+                >
+                  Back to Signup
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-50 p-4">
@@ -113,6 +186,31 @@ const Signup: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required 
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <Input 
+                type="tel" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+                placeholder="Enter your phone number"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                required 
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your 10-digit mobile number. We'll automatically add the country code:
+                <br />• Most 10-digit numbers starting with 6, 7, 8, 9 → +91 (India)
+                <br />• Numbers with +977 prefix → +977 (Nepal)
+              </p>
+              {phone && phone.length === 10 && (
+                <p className="text-xs text-blue-600 mt-1">
+                  {phone.startsWith('+977') ? '🇳🇵 Will be formatted as Nepalese number (+977)' : 
+                   '🇮🇳 Will be formatted as Indian number (+91)'}
+                </p>
+              )}
             </div>
 
             <div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
+import { Link } from 'react-router-dom';
 import EventFilters from '@/components/Events/EventFilters';
 import EventCard from '@/components/Events/EventCard';
 import { eventsAPI } from '@/services/api';
@@ -117,11 +118,17 @@ const Events = () => {
           </div>
         ) : (
           <>
-            <div className="mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <p className="text-gray-600">
                 Showing {events.length} event{events.length !== 1 ? 's' : ''}
                 {Object.keys(filters).length > 0 && ' with applied filters'}
               </p>
+              <Link
+                to="/events/create"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+              >
+                Create Event
+              </Link>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

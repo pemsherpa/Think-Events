@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -83,6 +83,16 @@ export const eventsAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/api/events${queryString ? `?${queryString}` : ''}`);
+  },
+  create: (formData) => {
+    const token = getAuthToken();
+    return fetch(`${API_URL}/api/events`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: formData,
+    }).then(handleResponse);
   },
   
   getById: (id) => apiRequest(`/api/events/${id}`),

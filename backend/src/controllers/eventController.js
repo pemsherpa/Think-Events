@@ -342,23 +342,48 @@ export const createEvent = async (req, res) => {
       start_time, end_time, price, currency, total_seats, tags
     } = req.body;
 
-    const newEvent = await query(`
+    // Parse optional fields
+    const parsedPrice = price !== undefined && price !== null ? parseFloat(price) : null;
+    const parsedSeats = parseInt(total_seats, 10);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Insert into events, mirror available_seats to total_seats
+    const insertEventQuery = `
       INSERT INTO events (
-        title, description, category_id, venue_id, organizer_id, 
-        start_date, end_date, start_time, end_time, price, currency, 
-        total_seats, available_seats, tags
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13)
+        title, description, category_id, venue_id, organizer_id,
+        start_date, end_date, start_time, end_time, price, currency,
+        total_seats, available_seats, images, tags
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
-    `, [
+    `;
+
+    const newEvent = await query(insertEventQuery, [
       title, description, category_id, venue_id, req.user.id,
-      start_date, end_date, start_time, end_time, price, currency,
-      total_seats, tags
+      start_date, end_date, start_time.includes(':') && start_time.length === 5 ? `${start_time}:00` : start_time,
+      end_time ? (end_time.includes(':') && end_time.length === 5 ? `${end_time}:00` : end_time) : null,
+      parsedPrice, currency || 'NPR',
+      parsedSeats, parsedSeats, imageUrl ? [imageUrl] : null, Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : null)
+    ]);
+
+    const created = newEvent.rows[0];
+
+    // Track in created_events table as well
+    await query(`
+      INSERT INTO created_events (
+        event_id, organizer_id, title, description, category_id, venue_id,
+        start_date, end_date, start_time, end_time, price, currency,
+        total_seats, image_url, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    `, [
+      created.id, req.user.id, title, description, category_id, venue_id,
+      start_date, end_date, start_time, end_time, parsedPrice, currency || 'NPR',
+      parsedSeats, imageUrl, 'created'
     ]);
 
     res.status(201).json({
       success: true,
       message: 'Event created successfully',
-      data: newEvent.rows[0]
+      data: created
     });
 
   } catch (error) {

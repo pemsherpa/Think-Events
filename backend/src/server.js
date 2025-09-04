@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config/config.js';
+import fs from 'fs';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -56,7 +57,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static file serving for uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsEventsDir = path.join(__dirname, '../uploads/events');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+if (!fs.existsSync(uploadsEventsDir)) fs.mkdirSync(uploadsEventsDir);
+app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads/events', express.static(uploadsEventsDir));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

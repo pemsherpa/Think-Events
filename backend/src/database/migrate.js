@@ -18,6 +18,18 @@ const createTables = async () => {
         google_id VARCHAR(255) UNIQUE,
         is_verified BOOLEAN DEFAULT FALSE,
         is_organizer BOOLEAN DEFAULT FALSE,
+        date_of_birth DATE,
+        gender VARCHAR(20),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        zip_code VARCHAR(20),
+        preferences JSONB,
+        reset_token VARCHAR(255),
+        reset_token_expires TIMESTAMP,
+        otp_code VARCHAR(6),
+        otp_expires TIMESTAMP,
+        phone_verified BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -87,6 +99,30 @@ const createTables = async () => {
     `);
     console.log('✓ Events table created');
 
+    // Created events table (tracks user-submitted events)
+    await query(`
+      CREATE TABLE IF NOT EXISTS created_events (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+        organizer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        category_id INTEGER REFERENCES categories(id),
+        venue_id INTEGER REFERENCES venues(id),
+        start_date TIMESTAMP NOT NULL,
+        end_date TIMESTAMP NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME,
+        price DECIMAL(10, 2),
+        currency VARCHAR(3) DEFAULT 'NPR',
+        total_seats INTEGER NOT NULL,
+        image_url TEXT,
+        status VARCHAR(20) DEFAULT 'created',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✓ Created events table created');
+
     // Bookings table
     await query(`
       CREATE TABLE IF NOT EXISTS bookings (
@@ -153,6 +189,8 @@ const createTables = async () => {
     await query('CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_organizer ON events(organizer_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_date ON events(start_date)');
+    await query('CREATE INDEX IF NOT EXISTS idx_created_events_organizer ON created_events(organizer_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_created_events_date ON created_events(start_date)');
     await query('CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_bookings_event ON bookings(event_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_reviews_event ON reviews(event_id)');

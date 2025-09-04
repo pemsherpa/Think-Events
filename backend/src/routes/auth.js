@@ -29,7 +29,13 @@ router.post('/google', [
 ], authController.googleAuth);
 
 router.post('/forgot-password', authController.forgotPassword);
+router.post('/verify-reset-otp', authController.verifyResetOTP);
+router.post('/resend-reset-otp', authController.resendResetOTP);
 router.post('/reset-password', authController.resetPassword);
+
+// OTP verification for signup
+router.post('/verify-signup-otp', authController.verifySignupOTP);
+router.post('/resend-signup-otp', authController.resendSignupOTP);
 
 // Protected routes
 router.get('/profile', authenticateToken, authController.getProfile);

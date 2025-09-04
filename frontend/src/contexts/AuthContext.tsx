@@ -97,6 +97,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (userData: any) => {
     try {
       const response = await authAPI.signup(userData);
+      
+      // If OTP is required, return the response without setting token/user
+      if (response.requiresOTP) {
+        return response;
+      }
+      
+      // If no OTP required, proceed with normal signup flow
       const { token: newToken, user: newUser } = response;
       
       setToken(newToken);
@@ -104,6 +111,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       localStorage.setItem('auth_token', newToken);
       localStorage.setItem('user', JSON.stringify(newUser));
+      
+      return response;
     } catch (error) {
       throw error;
     }

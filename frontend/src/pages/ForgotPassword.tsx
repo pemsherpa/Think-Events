@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Phone, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { authAPI } from '@/services/api';
 import Header from '@/components/Layout/Header';
 
 const ForgotPassword = () => {
@@ -14,31 +13,26 @@ const ForgotPassword = () => {
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get('token');
   
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(resetToken ? 'reset' : 'request'); // 'request' or 'reset'
-  const [emailSent, setEmailSent] = useState(false);
+  const [step, setStep] = useState(resetToken ? 'reset' : 'request'); // 'request', 'otp', or 'reset'
+  const [otpSent, setOtpSent] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
+  const [resendingOTP, setResendingOTP] = useState(false);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email) {
+    if (!phone) {
       toast({
-        title: "Email Required",
-        description: "Please enter your email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!email.includes('@')) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
+        title: "Phone Number Required",
+        description: "Please enter your phone number.",
         variant: "destructive",
       });
       return;
@@ -46,18 +40,28 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      const response = await authAPI.forgotPassword(email);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await response.json();
       
-      if (response.success) {
-        setEmailSent(true);
+      if (data.success) {
+        setUserId(data.userId);
+        setOtpSent(true);
+        setStep('otp');
         toast({
-          title: "Reset Link Sent",
-          description: response.message,
+          title: "OTP Sent",
+          description: data.message,
         });
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to send reset link",
+          description: data.message || "Failed to send OTP",
           variant: "destructive",
         });
       }
@@ -65,11 +69,97 @@ const ForgotPassword = () => {
       console.error('Error requesting password reset:', error);
       toast({
         title: "Error",
-        description: "Failed to send reset link. Please try again.",
+        description: "Failed to send OTP. Please try again.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length !== 6) {
+      toast({
+        title: "Invalid OTP",
+        description: "Please enter a valid 6-digit OTP code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerifyingOTP(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/verify-reset-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          otpCode
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setStep('reset');
+        toast({
+          title: "OTP Verified",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: data.message || "Failed to verify OTP. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyingOTP(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setResendingOTP(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/resend-reset-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "OTP Resent",
+          description: "A new OTP has been sent to your phone number.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to resend OTP. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingOTP(false);
     }
   };
 
@@ -121,9 +211,21 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      const response = await authAPI.resetPassword(resetToken!, newPassword);
+      // Get the reset token from the OTP verification step
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: resetToken,
+          newPassword
+        }),
+      });
+
+      const data = await response.json();
       
-      if (response.success) {
+      if (data.success) {
         toast({
           title: "Password Reset Successfully",
           description: "Your password has been reset. You can now login with your new password.",
@@ -132,7 +234,7 @@ const ForgotPassword = () => {
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to reset password",
+          description: data.message || "Failed to reset password",
           variant: "destructive",
         });
       }
@@ -170,6 +272,76 @@ const ForgotPassword = () => {
 
   const passwordStrength = getPasswordStrength(newPassword);
 
+  if (step === 'otp') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <Button 
+              variant="ghost" 
+              onClick={() => setStep('request')}
+              className="mb-6 hover:bg-purple-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Request
+            </Button>
+
+            <Card className="shadow-lg">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Verify OTP</CardTitle>
+                <CardDescription>
+                  Enter the 6-digit code sent to your phone number
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <form onSubmit={handleVerifyOTP} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">OTP Code</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="otp"
+                        type="text"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="Enter 6-digit code"
+                        className="pl-10 text-center text-lg tracking-widest"
+                        maxLength={6}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={verifyingOTP || otpCode.length !== 6}
+                  >
+                    {verifyingOTP ? 'Verifying...' : 'Verify OTP'}
+                  </Button>
+
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleResendOTP}
+                      disabled={resendingOTP}
+                      className="text-purple-600 hover:text-purple-700"
+                    >
+                      {resendingOTP ? 'Sending...' : 'Resend OTP'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'reset' && !resetToken) {
     navigate('/forgot-password');
     return null;
@@ -196,7 +368,7 @@ const ForgotPassword = () => {
               </CardTitle>
               <CardDescription>
                 {step === 'request' 
-                  ? 'Enter your email to receive a password reset link'
+                  ? 'Enter your phone number to receive a verification code'
                   : 'Enter your new password'
                 }
               </CardDescription>
@@ -206,19 +378,30 @@ const ForgotPassword = () => {
               {step === 'request' ? (
                 <form onSubmit={handleRequestReset} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="phone">Phone Number</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Enter your phone number"
                         className="pl-10"
                         required
                       />
                     </div>
+                    <p className="text-xs text-gray-500">
+                      Enter your 10-digit mobile number. We'll automatically add the country code:
+                      <br />• Most 10-digit numbers starting with 6, 7, 8, 9 → +91 (India)
+                      <br />• Numbers with +977 prefix → +977 (Nepal)
+                    </p>
+                    {phone && phone.length === 10 && (
+                      <p className="text-xs text-blue-600">
+                        {phone.startsWith('+977') ? '🇳🇵 Will be formatted as Nepalese number (+977)' : 
+                         '🇮🇳 Will be formatted as Indian number (+91)'}
+                      </p>
+                    )}
                   </div>
 
                   <Button 
@@ -226,7 +409,7 @@ const ForgotPassword = () => {
                     className="w-full bg-purple-600 hover:bg-purple-700"
                     disabled={loading}
                   >
-                    {loading ? 'Sending...' : 'Send Reset Link'}
+                    {loading ? 'Sending...' : 'Send OTP'}
                   </Button>
                 </form>
               ) : (
@@ -314,12 +497,12 @@ const ForgotPassword = () => {
                 </form>
               )}
 
-              {emailSent && (
+              {otpSent && step === 'request' && (
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     <p className="text-green-800">
-                      Reset link sent! Check your email and click the link to reset your password.
+                      OTP sent! Check your phone for the verification code.
                     </p>
                   </div>
                 </div>

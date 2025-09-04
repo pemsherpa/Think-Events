@@ -1,10 +1,26 @@
 import express from 'express';
 import { body } from 'express-validator';
 import * as eventController from '../controllers/eventController.js';
-import { authenticateToken, requireOrganizer } from '../middleware/auth.js';
+import multer from 'multer';
+import path from 'path';
+import { authenticateToken } from '../middleware/auth.js';
 import { commonValidations, handleValidationErrors, validateEventDates } from '../utils/validation.js';
 
 const router = express.Router();
+
+// Multer storage for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(process.cwd(), 'backend', 'uploads', 'events'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `event-${uniqueSuffix}${ext}`);
+  }
+});
+
+const upload = multer({ storage });
 
 // Public routes
 router.get('/', eventController.getEvents);
@@ -13,10 +29,10 @@ router.get('/venues', eventController.getVenues);
 router.get('/:id', eventController.getEventById);
 router.get('/venues/:id', eventController.getVenueById);
 
-// Protected routes (organizer only)
+// Protected routes (authenticated users)
 router.post('/', [
   authenticateToken,
-  requireOrganizer,
+  upload.single('image'),
   commonValidations.eventTitle,
   commonValidations.eventDescription,
   body('category_id').isInt().withMessage('Category ID must be an integer'),
@@ -31,13 +47,11 @@ router.post('/', [
 
 router.put('/:id', [
   authenticateToken,
-  requireOrganizer,
   handleValidationErrors
 ], eventController.updateEvent);
 
 router.delete('/:id', [
   authenticateToken,
-  requireOrganizer
 ], eventController.deleteEvent);
 
 export default router;

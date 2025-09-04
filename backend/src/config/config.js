@@ -48,4 +48,11 @@ export default {
   // File upload
   maxFileSize: 5 * 1024 * 1024, // 5MB
   allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp'],
+  
+  // Twilio configuration
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID,
+    authToken: process.env.TWILIO_AUTH_TOKEN,
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER,
+  },
 };

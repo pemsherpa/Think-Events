@@ -411,6 +411,22 @@ const seedDatabase = async () => {
       console.log('✓ Events seeded');
     }
 
+    // Seed created_events sample tracking rows for first two events
+    const firstTwo = await query('SELECT id, title, category_id, venue_id, organizer_id, start_date, end_date, start_time, end_time, price, currency, total_seats, images FROM events ORDER BY id ASC LIMIT 2');
+    for (const row of firstTwo.rows) {
+      await query(
+        `INSERT INTO created_events (event_id, organizer_id, title, description, category_id, venue_id, start_date, end_date, start_time, end_time, price, currency, total_seats, image_url, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)` ,
+        [
+          row.id, row.organizer_id, row.title, 'Seeded created event record', row.category_id, row.venue_id,
+          row.start_date, row.end_date, row.start_time, row.end_time, row.price, row.currency, row.total_seats,
+          Array.isArray(row.images) && row.images.length > 0 ? row.images[0] : null,
+          'created'
+        ]
+      );
+    }
+    console.log('✓ Created events seeded');
+
     console.log('Database seeding completed successfully!');
 
   } catch (error) {

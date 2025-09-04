@@ -30,7 +30,29 @@ export const commonValidations = {
   
   phone: body('phone')
     .optional()
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
+    .custom((value) => {
+      if (!value) return true;
+      
+      // Remove all non-digit characters
+      const cleaned = value.replace(/\D/g, '');
+      
+      // Indian numbers: +91XXXXXXXXXX (12 digits total)
+      if (value.startsWith('+91') && cleaned.length === 12) {
+        return true;
+      }
+      
+      // Nepalese numbers: +977XXXXXXXXX (12 digits total)
+      if (value.startsWith('+977') && cleaned.length === 12) {
+        return true;
+      }
+      
+      // 10-digit numbers (assume Indian)
+      if (cleaned.length === 10) {
+        return true;
+      }
+      
+      throw new Error('Please provide a valid Indian (+91) or Nepalese (+977) phone number');
+    })
     .withMessage('Please provide a valid phone number'),
   
   eventTitle: body('title')
@@ -40,8 +62,8 @@ export const commonValidations = {
   
   eventDescription: body('description')
     .trim()
-    .isLength({ min: 10, max: 2000 })
-    .withMessage('Event description must be 10-2000 characters'),
+    .isLength({ min: 3, max: 2000 })
+    .withMessage('Event description must be 3-2000 characters'),
   
   eventPrice: body('price')
     .optional()
@@ -57,8 +79,8 @@ export const commonValidations = {
     .withMessage('Start date must be a valid date'),
   
   eventTime: body('start_time')
-    .matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)
-    .withMessage('Start time must be in HH:MM:SS format'),
+    .matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/)
+    .withMessage('Start time must be in HH:MM or HH:MM:SS format'),
   
   venueName: body('name')
     .trim()
