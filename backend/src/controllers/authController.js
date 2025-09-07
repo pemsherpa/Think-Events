@@ -891,3 +891,48 @@ export const resetPassword = async (req, res) => {
     });
   }
 };
+
+// Delete user account
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Start a transaction to ensure all related data is deleted
+    await query('BEGIN');
+
+    try {
+      // Delete user's bookings
+      await query('DELETE FROM bookings WHERE user_id = $1', [userId]);
+      
+      // Delete user's reviews
+      await query('DELETE FROM reviews WHERE user_id = $1', [userId]);
+      
+      // Delete user's events (if they're an organizer)
+      await query('DELETE FROM events WHERE organizer_id = $1', [userId]);
+      
+      // Delete user's created events tracking
+      await query('DELETE FROM created_events WHERE user_id = $1', [userId]);
+      
+      // Finally, delete the user
+      await query('DELETE FROM users WHERE id = $1', [userId]);
+
+      // Commit the transaction
+      await query('COMMIT');
+
+      res.json({
+        success: true,
+        message: 'Account deleted successfully'
+      });
+    } catch (error) {
+      // Rollback the transaction if any error occurs
+      await query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account'
+    });
+  }
+};

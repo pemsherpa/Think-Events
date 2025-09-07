@@ -338,14 +338,44 @@ export const getVenueById = async (req, res) => {
 export const createEvent = async (req, res) => {
   try {
     const {
-      title, description, category_id, venue_id, start_date, end_date,
-      start_time, end_time, price, currency, total_seats, tags
+      title, description, category_id, venue_id, venue_name, venue_address, venue_city,
+      start_date, end_date, start_time, end_time, price, currency, total_seats, tags, image_url
     } = req.body;
 
     // Parse optional fields
     const parsedPrice = price !== undefined && price !== null ? parseFloat(price) : null;
     const parsedSeats = parseInt(total_seats, 10);
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    // Handle image upload - convert to base64 and store in database
+    let imageData = null;
+    if (req.file) {
+      const imageBuffer = req.file.buffer;
+      const imageBase64 = imageBuffer.toString('base64');
+      const imageMimeType = req.file.mimetype;
+      imageData = `data:${imageMimeType};base64,${imageBase64}`;
+    } else if (image_url) {
+      // If image URL is provided, store it directly
+      imageData = image_url;
+    }
+
+    let finalVenueId = venue_id;
+
+    // If venue details are provided instead of venue_id, create a new venue
+    if (venue_name && venue_city && !venue_id) {
+      const venueQuery = `
+        INSERT INTO venues (name, address, city, country, capacity, created_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        RETURNING id
+      `;
+      const venueResult = await query(venueQuery, [
+        venue_name, 
+        venue_address || '', 
+        venue_city, 
+        'Nepal', 
+        parsedSeats || 100
+      ]);
+      finalVenueId = venueResult.rows[0].id;
+    }
 
     // Insert into events, mirror available_seats to total_seats
     const insertEventQuery = `
@@ -358,11 +388,11 @@ export const createEvent = async (req, res) => {
     `;
 
     const newEvent = await query(insertEventQuery, [
-      title, description, category_id, venue_id, req.user.id,
+      title, description, category_id, finalVenueId, req.user.id,
       start_date, end_date, start_time.includes(':') && start_time.length === 5 ? `${start_time}:00` : start_time,
       end_time ? (end_time.includes(':') && end_time.length === 5 ? `${end_time}:00` : end_time) : null,
       parsedPrice, currency || 'NPR',
-      parsedSeats, parsedSeats, imageUrl ? [imageUrl] : null, Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : null)
+      parsedSeats, parsedSeats, imageData ? [imageData] : null, Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : null)
     ]);
 
     const created = newEvent.rows[0];

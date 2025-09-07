@@ -8,19 +8,26 @@ import { commonValidations, handleValidationErrors, validateEventDates } from '.
 
 const router = express.Router();
 
-// Multer storage for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'backend', 'uploads', 'events'));
+// Multer storage for image uploads - using memory storage to store in database
+const storage = multer.memoryStorage();
+
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `event-${uniqueSuffix}${ext}`);
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
   }
 });
-
-const upload = multer({ storage });
 
 // Public routes
 router.get('/', eventController.getEvents);
@@ -37,7 +44,9 @@ router.post('/', [
   commonValidations.eventTitle,
   commonValidations.eventDescription,
   body('category_id').isInt().withMessage('Category ID must be an integer'),
-  body('venue_id').isInt().withMessage('Venue ID must be an integer'),
+  body('venue_id').optional().isInt().withMessage('Venue ID must be an integer'),
+  body('venue_name').optional().isString().withMessage('Venue name must be a string'),
+  body('venue_city').optional().isString().withMessage('Venue city must be a string'),
   commonValidations.eventDate,
   commonValidations.eventTime,
   commonValidations.eventPrice,

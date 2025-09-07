@@ -11,6 +11,7 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState('recent');
 
   useEffect(() => {
     const category = searchParams.get('category');
@@ -31,12 +32,33 @@ const Events = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, [filters]);
+  }, [filters, sortBy]);
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await eventsAPI.getAll(filters);
+      const queryParams: any = { ...filters };
+      
+      // Add sorting parameters
+      switch (sortBy) {
+        case 'viewed':
+          queryParams.sortBy = 'views';
+          queryParams.sortOrder = 'DESC';
+          break;
+        case 'recent':
+          queryParams.sortBy = 'created_at';
+          queryParams.sortOrder = 'DESC';
+          break;
+        case 'soon':
+          queryParams.sortBy = 'start_date';
+          queryParams.sortOrder = 'ASC';
+          break;
+        default:
+          queryParams.sortBy = 'created_at';
+          queryParams.sortOrder = 'DESC';
+      }
+      
+      const response = await eventsAPI.getAll(queryParams);
       setEvents(response.data.events || []);
       setError(null);
     } catch (err) {
@@ -53,7 +75,7 @@ const Events = () => {
     const newSearchParams = new URLSearchParams();
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value) {
-        newSearchParams.set(key, value);
+        newSearchParams.set(key, String(value));
       }
     });
     setSearchParams(newSearchParams);
@@ -119,16 +141,52 @@ const Events = () => {
           </div>
         ) : (
           <>
-            <div className="mb-6 flex items-center justify-between">
-              <p className="text-gray-600">
-                Showing {events.length} event{events.length !== 1 ? 's' : ''}
-              </p>
-              <Link
-                to="/events/create"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-              >
-                Create Event
-              </Link>
+            {/* Sorting Buttons */}
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-3 mb-4">
+                <button
+                  onClick={() => setSortBy('viewed')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                    sortBy === 'viewed'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                  }`}
+                >
+                  Most Viewed
+                </button>
+                <button
+                  onClick={() => setSortBy('recent')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                    sortBy === 'recent'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                  }`}
+                >
+                  Most Recent
+                </button>
+                <button
+                  onClick={() => setSortBy('soon')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                    sortBy === 'soon'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                  }`}
+                >
+                  Happening Soon
+                </button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <p className="text-gray-600">
+                  Showing {events.length} event{events.length !== 1 ? 's' : ''}
+                </p>
+                <Link
+                  to="/events/create"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+                >
+                  Create Event
+                </Link>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

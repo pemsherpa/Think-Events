@@ -20,6 +20,9 @@ interface OrderSummaryProps {
   eventDate?: string;
   eventTime?: string;
   eventVenue?: string;
+  promoCode?: string | null;
+  discountAmount?: number;
+  finalPrice?: number;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -28,7 +31,10 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   eventTitle,
   eventDate,
   eventTime,
-  eventVenue
+  eventVenue,
+  promoCode,
+  discountAmount = 0,
+  finalPrice
 }) => {
   const getSeatTypeColor = (type: string) => {
     switch (type) {
@@ -121,6 +127,12 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           <span>Tax</span>
           <span>रु {(totalPrice * 0.13).toFixed(0)}</span>
         </div>
+        {promoCode && (
+          <div className="flex justify-between text-sm text-green-600">
+            <span>Promo Code ({promoCode})</span>
+            <span>-रु {discountAmount.toLocaleString()}</span>
+          </div>
+        )}
       </div>
 
       <Separator className="my-4" />
@@ -128,7 +140,16 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       {/* Total */}
       <div className="flex justify-between items-center text-lg font-bold">
         <span>Total Amount</span>
-        <span className="text-purple-600">रु {(totalPrice * 1.18).toFixed(0)}</span>
+        <div className="text-right">
+          {promoCode && finalPrice === 0 ? (
+            <div>
+              <div className="text-green-600 text-xl">FREE</div>
+              <div className="text-sm text-gray-500 line-through">रु {(totalPrice * 1.18).toFixed(0)}</div>
+            </div>
+          ) : (
+            <span className="text-purple-600">रु {finalPrice ? finalPrice.toLocaleString() : (totalPrice * 1.18).toFixed(0)}</span>
+          )}
+        </div>
       </div>
 
       {/* Additional Info */}

@@ -11,6 +11,7 @@ import PaymentMethods from '@/components/Payment/PaymentMethods';
 import { bookingsAPI } from '@/services/api';
 import BookingForm, { BookingFormRef } from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
+import { usePromoCode } from '@/contexts/PromoCodeContext';
 
 interface Event {
   id: number;
@@ -36,6 +37,7 @@ interface Event {
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getFinalPrice, activePromoCode } = usePromoCode();
   const [activeTab, setActiveTab] = useState('details');
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -246,6 +248,9 @@ const BookingPage = () => {
                   eventDate={formatDate(event.start_date)}
                   eventTime={formatTime(event.start_time)}
                   eventVenue={event.venue_name}
+                  promoCode={activePromoCode}
+                  discountAmount={activePromoCode ? (totalPrice * 1.18) - getFinalPrice(totalPrice * 1.18, id || '') : 0}
+                  finalPrice={getFinalPrice(totalPrice * 1.18, id || '')}
                 />
               </div>
             </div>
@@ -282,6 +287,9 @@ const BookingPage = () => {
                   eventDate={formatDate(event.start_date)}
                   eventTime={formatTime(event.start_time)}
                   eventVenue={event.venue_name}
+                  promoCode={activePromoCode}
+                  discountAmount={activePromoCode ? (totalPrice * 1.18) - getFinalPrice(totalPrice * 1.18, id || '') : 0}
+                  finalPrice={getFinalPrice(totalPrice * 1.18, id || '')}
                 />
               </div>
             </div>
@@ -294,6 +302,7 @@ const BookingPage = () => {
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Booking</h2>
                   <PaymentMethods 
                     totalAmount={Math.round(totalPrice * 1.18)}
+                    eventId={id || ''}
                     onPaymentComplete={async () => {
                       try {
                         // Create booking with selected seats
@@ -334,6 +343,9 @@ const BookingPage = () => {
                   eventDate={formatDate(event.start_date)}
                   eventTime={formatTime(event.start_time)}
                   eventVenue={event.venue_name}
+                  promoCode={activePromoCode}
+                  discountAmount={activePromoCode ? (totalPrice * 1.18) - getFinalPrice(totalPrice * 1.18, id || '') : 0}
+                  finalPrice={getFinalPrice(totalPrice * 1.18, id || '')}
                 />
               </div>
             </div>

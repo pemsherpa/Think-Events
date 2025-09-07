@@ -58,4 +58,6 @@ router.put('/change-password', [
 
 router.post('/logout', authenticateToken, authController.logout);
 
+router.delete('/account', authenticateToken, authController.deleteAccount);
+
 export default router;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Layout/Header';
+import Footer from '@/components/Layout/Footer';
 import HeroSection from '@/components/Hero/HeroSection';
 import CategoryGrid from '@/components/Categories/CategoryGrid';
 import EventFilters from '@/components/Events/EventFilters';
@@ -15,6 +16,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [sortBy, setSortBy] = useState('recent');
 
   useEffect(() => {
     // Get category from URL params
@@ -22,16 +24,46 @@ const Index = () => {
     if (category) {
       setFilters(prev => ({ ...prev, category }));
     }
+    
+    // Listen for category filter events from CategoryGrid
+    const handleCategoryFilter = (event: CustomEvent) => {
+      const { category } = event.detail;
+      setFilters(prev => ({ ...prev, category }));
+    };
+    
+    window.addEventListener('categoryFilter', handleCategoryFilter);
+    return () => window.removeEventListener('categoryFilter', handleCategoryFilter);
   }, [searchParams]);
 
   useEffect(() => {
     fetchEvents();
-  }, [filters]);
+  }, [filters, sortBy]);
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await eventsAPI.getAll(filters);
+      const queryParams: any = { ...filters };
+      
+      // Add sorting parameters
+      switch (sortBy) {
+        case 'viewed':
+          queryParams.sortBy = 'views';
+          queryParams.sortOrder = 'DESC';
+          break;
+        case 'recent':
+          queryParams.sortBy = 'created_at';
+          queryParams.sortOrder = 'DESC';
+          break;
+        case 'soon':
+          queryParams.sortBy = 'start_date';
+          queryParams.sortOrder = 'ASC';
+          break;
+        default:
+          queryParams.sortBy = 'created_at';
+          queryParams.sortOrder = 'DESC';
+      }
+      
+      const response = await eventsAPI.getAll(queryParams);
       setEvents(response.data.events || []);
       setError(null);
     } catch (err) {
@@ -50,7 +82,7 @@ const Index = () => {
     const newSearchParams = new URLSearchParams();
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value) {
-        newSearchParams.set(key, value);
+        newSearchParams.set(key, String(value));
       }
     });
     // Update URL without navigation
@@ -67,7 +99,7 @@ const Index = () => {
       <HeroSection />
       <CategoryGrid />
       
-      <section className="py-16">
+      <section className="py-16" data-section="events">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -79,6 +111,42 @@ const Index = () => {
           </div>
 
           <EventFilters onFilterChange={handleFilterChange} />
+          
+          {/* Sorting Buttons */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={() => setSortBy('viewed')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                  sortBy === 'viewed'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                }`}
+              >
+                Most Viewed
+              </button>
+              <button
+                onClick={() => setSortBy('recent')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                  sortBy === 'recent'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                }`}
+              >
+                Most Recent
+              </button>
+              <button
+                onClick={() => setSortBy('soon')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                  sortBy === 'soon'
+                    ? 'bg-purple-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-purple-300'
+                }`}
+              >
+                Happening Soon
+              </button>
+            </div>
+          </div>
           
           {loading ? (
             <div className="text-center py-12">
@@ -118,58 +186,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2 rounded-lg">
-                  <span className="font-bold text-xl">TE</span>
-                </div>
-                <span className="font-bold text-xl">Think Event</span>
-              </div>
-              <p className="text-gray-400">
-                Nepal's premier event booking platform. Discover, book, and enjoy amazing events across the country.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><button onClick={() => navigate('/events')} className="hover:text-white transition-colors">Browse Events</button></li>
-                <li><button onClick={() => navigate('/categories')} className="hover:text-white transition-colors">Categories</button></li>
-                <li><button onClick={() => navigate('/venues')} className="hover:text-white transition-colors">Venues</button></li>
-                <li><button onClick={() => navigate('/organizers')} className="hover:text-white transition-colors">Organizers</button></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-4">For Organizers</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Create Event</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Organizer Dashboard</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Resources</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Think Event. All rights reserved. Made with ❤️ in Nepal</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -492,9 +492,9 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
           </div>
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-lg font-semibold text-gray-900">
-                Total: रु {totalPrice.toLocaleString()}
-              </span>
+        <span className="text-lg font-semibold text-gray-900">
+          Total: रु {totalPrice.toLocaleString()}
+        </span>
               <span className="text-gray-600 ml-2">
                 ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
               </span>

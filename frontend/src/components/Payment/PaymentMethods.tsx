@@ -4,15 +4,20 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { usePromoCode } from '@/contexts/PromoCodeContext';
+import { toast } from '@/hooks/use-toast';
+import { Check, X } from 'lucide-react';
 
 interface PaymentMethodsProps {
   totalAmount: number;
+  eventId: string;
   onPaymentComplete?: () => void;
 }
 
-const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, onPaymentComplete }) => {
+const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, eventId, onPaymentComplete }) => {
   const [selectedMethod, setSelectedMethod] = useState('esewa');
   const [promoCode, setPromoCode] = useState('');
+  const { activePromoCode, activeEventId, applyPromoCode, clearPromoCode, getFinalPrice } = usePromoCode();
 
   const paymentMethods = [
     {
@@ -37,6 +42,42 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, onPaymentC
       color: 'border-red-500'
     }
   ];
+
+  const handleApplyPromoCode = () => {
+    if (!promoCode.trim()) {
+      toast({
+        title: "Enter a promo code",
+        description: "Please enter a valid promo code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (applyPromoCode(promoCode, eventId)) {
+      toast({
+        title: "Promo code applied!",
+        description: "Your promo code has been successfully applied to this event.",
+      });
+      setPromoCode('');
+    } else {
+      toast({
+        title: "Invalid promo code",
+        description: "The promo code you entered is not valid.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearPromoCode = () => {
+    clearPromoCode();
+    toast({
+      title: "Promo code removed",
+      description: "Your promo code has been removed.",
+    });
+  };
+
+  const finalAmount = getFinalPrice(totalAmount, eventId);
+  const isPromoActive = activePromoCode && activeEventId === eventId;
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
@@ -70,23 +111,57 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, onPaymentC
       {/* Promo Code */}
       <div className="mt-6 pt-6 border-t border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-3">Promo Code</h3>
-        <div className="flex space-x-2">
-          <Input 
-            placeholder="Enter promo code"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
-          />
-          <Button variant="outline">Apply</Button>
-        </div>
+        {isPromoActive ? (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800">
+                Promo code: {activePromoCode}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearPromoCode}
+              className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <Input 
+              placeholder="Enter promo code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              onKeyPress={(e) => e.key === 'Enter' && handleApplyPromoCode()}
+            />
+            <Button variant="outline" onClick={handleApplyPromoCode}>
+              Apply
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Payment Button */}
       <div className="mt-6 pt-6 border-t border-gray-200">
+        {isPromoActive && activePromoCode === 'KNP25' ? (
+          <div className="text-center mb-4">
+            <div className="text-2xl font-bold text-green-600 mb-1">FREE</div>
+            <div className="text-sm text-gray-500 line-through">रु {totalAmount.toLocaleString()}</div>
+            <div className="text-xs text-green-600">with KNP25 promo</div>
+          </div>
+        ) : (
+          <div className="text-center mb-4">
+            <div className="text-2xl font-bold text-gray-900">रु {finalAmount.toLocaleString()}</div>
+          </div>
+        )}
+        
         <Button 
           className="w-full bg-purple-600 hover:bg-purple-700 h-12 text-lg"
           onClick={onPaymentComplete}
         >
-          Pay रु {totalAmount.toLocaleString()}
+          {isPromoActive && activePromoCode === 'KNP25' ? 'Complete Booking (FREE)' : `Pay रु ${finalAmount.toLocaleString()}`}
         </Button>
         <div className="mt-4 text-center text-sm text-gray-500">
           <p>🔒 Your payment is secured with 256-bit SSL encryption</p>

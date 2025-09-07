@@ -14,6 +14,9 @@ import Venues from "./pages/Venues";
 import Organizers from "./pages/Organizers";
 import OrganizerDetail from "./pages/OrganizerDetail";
 import Categories from "./pages/Categories";
+import Artists from "./pages/Artists";
+import ArtistDetail from "./pages/ArtistDetail";
+import BookArtist from "./pages/BookArtist";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -23,6 +26,7 @@ import Profile from "./pages/Profile";
 import EventsCreate from "./pages/EventsCreate";
 import EventsEdit from "./pages/EventsEdit";
 import { AuthProvider } from "./contexts/AuthContext";
+import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = "715592021110-v6q8btevo8b3b4b6gou6lu58qb0bss02.apps.googleusercontent.com";
@@ -47,10 +51,11 @@ const App = () => {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+          <PromoCodeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/events" element={<Events />} />
@@ -62,6 +67,9 @@ const App = () => {
                 <Route path="/organizers" element={<Organizers />} />
                 <Route path="/organizer/:id" element={<OrganizerDetail />} />
                 <Route path="/categories" element={<Categories />} />
+                <Route path="/artists" element={<Artists />} />
+                <Route path="/artist/:id" element={<ArtistDetail />} />
+                <Route path="/book-artist/:id" element={<BookArtist />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -70,7 +78,8 @@ const App = () => {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </TooltipProvider>
+            </TooltipProvider>
+          </PromoCodeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>

@@ -63,7 +63,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 group">
       <div className="relative cursor-pointer" onClick={handleCardClick}>
         <img 
           src={event.images && event.images.length > 0 
@@ -71,14 +71,14 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             : 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=200&fit=crop'
           }
           alt={event.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <div className="absolute top-3 left-3">
           <Badge variant="secondary" className="bg-white/90 text-purple-600">
             {event.category_name}
           </Badge>
         </div>
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
           <Badge className={`${availability.color} text-white`}>
             {availability.text}
           </Badge>
@@ -118,7 +118,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           
           <Button 
             size="sm" 
-            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto min-h-[40px] md:min-h-[36px]"
+            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto min-h-[40px] md:min-h-[36px] transition-all duration-300 hover:scale-105 hover:shadow-lg"
             onClick={(e) => {
               e.stopPropagation();
               handleBookNow();
@@ -131,7 +131,15 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs text-gray-500 space-y-1 sm:space-y-0">
-            <span>by {event.organizer_name}</span>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/organizers');
+              }}
+              className="text-left hover:text-purple-600 transition-colors"
+            >
+              by {event.organizer_name}
+            </button>
             <span>{event.available_seats} of {event.total_seats} seats left</span>
           </div>
         </div>

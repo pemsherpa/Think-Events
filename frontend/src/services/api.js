@@ -76,6 +76,10 @@ export const authAPI = {
   logout: () => apiRequest('/api/auth/logout', {
     method: 'POST',
   }),
+  
+  deleteAccount: () => apiRequest('/api/auth/account', {
+    method: 'DELETE',
+  }),
 };
 
 // Events APIs

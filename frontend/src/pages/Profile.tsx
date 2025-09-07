@@ -29,7 +29,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { eventsAPI } from '@/services/api';
+import { eventsAPI, authAPI } from '@/services/api';
 
 interface ProfileData {
   first_name: string;
@@ -255,6 +255,43 @@ const Profile = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, including bookings, events, and profile information.'
+    );
+    
+    if (!confirmed) return;
+
+    const doubleConfirmed = window.confirm(
+      'This is your final warning. Are you absolutely sure you want to delete your account?'
+    );
+    
+    if (!doubleConfirmed) return;
+
+    try {
+      setLoading(true);
+      await authAPI.deleteAccount();
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      
+      // Clear local storage and redirect
+      localStorage.removeItem('auth_token');
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
@@ -703,7 +740,13 @@ const Profile = () => {
                               <h5 className="font-medium text-red-900">Delete Account</h5>
                               <p className="text-sm text-red-700">Permanently delete your account and all data</p>
                             </div>
-                            <Button variant="destructive">Delete Account</Button>
+                            <Button 
+                              variant="destructive" 
+                              onClick={handleDeleteAccount}
+                              disabled={loading}
+                            >
+                              {loading ? 'Deleting...' : 'Delete Account'}
+                            </Button>
                           </div>
                         </div>
                       </div>

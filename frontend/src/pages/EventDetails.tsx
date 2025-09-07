@@ -106,41 +106,97 @@ const EventDetails = () => {
               <TabsContent value="overview" className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold mb-4">Event Description</h2>
                 <div className="prose max-w-none">
-                  {event.description.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4 text-gray-700 leading-relaxed">
-                      {paragraph}
+                  {event.description ? (
+                    event.description.split('\n\n').map((paragraph, index) => (
+                      <p key={index} className="mb-4 text-gray-700 leading-relaxed">
+                        {paragraph}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="text-gray-700 leading-relaxed">
+                      No description available for this event.
                     </p>
-                  ))}
+                  )}
                 </div>
 
-                <h3 className="text-xl font-semibold mt-8 mb-4">Event Highlights</h3>
-                <ul className="space-y-2">
-                  {event.highlights.map((highlight, index) => (
-                    <li key={index} className="flex items-center text-gray-700">
-                      <div className="w-2 h-2 bg-purple-600 rounded-full mr-3"></div>
-                      {highlight}
-                    </li>
-                  ))}
-                </ul>
+                {event.highlights && event.highlights.length > 0 && (
+                  <>
+                    <h3 className="text-xl font-semibold mt-8 mb-4">Event Highlights</h3>
+                    <ul className="space-y-2">
+                      {event.highlights.map((highlight, index) => (
+                        <li key={index} className="flex items-center text-gray-700">
+                          <div className="w-2 h-2 bg-purple-600 rounded-full mr-3"></div>
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="schedule" className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold mb-6">Event Schedule</h2>
-                <div className="space-y-4">
-                  {event.schedule.map((item, index) => (
-                    <div key={index} className="flex items-center p-4 border border-gray-200 rounded-lg">
-                      <div className="w-20 text-purple-600 font-semibold">{item.time}</div>
-                      <div className="flex-1 text-gray-900">{item.activity}</div>
-                    </div>
-                  ))}
-                </div>
+                {event.schedule && event.schedule.length > 0 ? (
+                  <div className="space-y-4">
+                    {event.schedule.map((item, index) => (
+                      <div key={index} className="flex items-center p-4 border border-gray-200 rounded-lg">
+                        <div className="w-20 text-purple-600 font-semibold">{item.time}</div>
+                        <div className="flex-1 text-gray-900">{item.activity}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-12">
+                    <p>No detailed schedule available for this event.</p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="reviews" className="bg-white rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold mb-6">Reviews & Ratings</h2>
-                <div className="text-center text-gray-500 py-12">
-                  <p>Reviews will be available after the event.</p>
-                </div>
+                {event.reviews && event.reviews.length > 0 ? (
+                  <div className="space-y-4">
+                    {event.reviews.map((review, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                              <span className="text-purple-600 font-semibold text-sm">
+                                {review.first_name ? review.first_name[0] : review.username[0]}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {review.first_name && review.last_name 
+                                  ? `${review.first_name} ${review.last_name}`
+                                  : review.username
+                                }
+                              </p>
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star 
+                                    key={i} 
+                                    className={`h-4 w-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-gray-700 mt-2">{review.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-12">
+                    <p>No reviews available yet. Be the first to review this event!</p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -151,15 +207,15 @@ const EventDetails = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-5 w-5 mr-3" />
-                  <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                  <span>{event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Date TBA'}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Clock className="h-5 w-5 mr-3" />
-                  <span>{event.start_time}</span>
+                  <span>{event.start_time || 'Time TBA'}</span>
                 </div>
                 <div className="flex items-center text-gray-600">
                   <MapPin className="h-5 w-5 mr-3" />
-                  <span>{event.venue_name}, {event.venue_city}</span>
+                  <span>{event.venue_name || 'Venue TBA'}, {event.venue_city || 'Location TBA'}</span>
                 </div>
               </div>
 
@@ -174,12 +230,12 @@ const EventDetails = () => {
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-2">
                     <span>Seats Available</span>
-                    <span>{event.available_seats} of {event.total_seats}</span>
+                    <span>{event.available_seats || 0} of {event.total_seats || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-green-500 h-2 rounded-full" 
-                      style={{ width: `${event.total_seats ? (event.available_seats / event.total_seats) * 100 : 0}%` }}
+                      style={{ width: `${event.total_seats ? ((event.available_seats || 0) / event.total_seats) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>
