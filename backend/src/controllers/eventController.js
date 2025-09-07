@@ -346,15 +346,9 @@ export const createEvent = async (req, res) => {
     const parsedPrice = price !== undefined && price !== null ? parseFloat(price) : null;
     const parsedSeats = parseInt(total_seats, 10);
     
-    // Handle image upload - convert to base64 and store in database
+    // Handle image URL - store directly in database
     let imageData = null;
-    if (req.file) {
-      const imageBuffer = req.file.buffer;
-      const imageBase64 = imageBuffer.toString('base64');
-      const imageMimeType = req.file.mimetype;
-      imageData = `data:${imageMimeType};base64,${imageBase64}`;
-    } else if (image_url) {
-      // If image URL is provided, store it directly
+    if (image_url) {
       imageData = image_url;
     }
 
@@ -407,7 +401,7 @@ export const createEvent = async (req, res) => {
     `, [
       created.id, req.user.id, title, description, category_id, venue_id,
       start_date, end_date, start_time, end_time, parsedPrice, currency || 'NPR',
-      parsedSeats, imageUrl, 'created'
+      parsedSeats, imageData, 'created'
     ]);
 
     res.status(201).json({

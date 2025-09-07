@@ -4,14 +4,16 @@ import { User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import CalendarModal from '@/components/Calendar/CalendarModal';
+import HeaderCalendar from '@/components/Calendar/HeaderCalendar';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const navigationItems = [
     { title: 'All Events', icon: Calendar, path: '/events' },
@@ -20,26 +22,34 @@ const Header = () => {
     { title: 'Artists', icon: Building, path: '/artists' }
   ];
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
     };
 
-    if (isMenuOpen) {
+    if (isMenuOpen || isProfileOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isProfileOpen]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsMenuOpen(false);
+  };
+
+  const handleProfileNavigation = (path: string) => {
+    navigate(path);
+    setIsProfileOpen(false);
   };
 
   const handleLogoClick = () => {
@@ -101,29 +111,24 @@ const Header = () => {
           {/* User Actions */}
           <div className="flex items-center space-x-3">
             {/* Calendar Button */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex items-center justify-center w-10 h-10 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300"
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300"
               onClick={() => setIsCalendarOpen(true)}
-              title="View your event calendar"
             >
-              <Calendar className="h-5 w-5" />
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline font-medium">Calendar</span>
             </Button>
-            
+
             {user ? (
               <div className="flex items-center space-x-3">
-                <div className="hidden sm:block text-sm text-gray-600">
-                  <span className="font-medium">Welcome,</span>
-                  <br />
-                  <span className="text-purple-600">{user.first_name || user.username}</span>
-                </div>
-                <div className="relative" ref={menuRef}>
+                <div className="relative" ref={profileRef}>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="flex items-center space-x-2 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl transition-all duration-300"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
                       <User className="h-4 w-4 text-white" />
@@ -131,21 +136,27 @@ const Header = () => {
                     <span className="hidden sm:inline font-medium">Profile</span>
                   </Button>
                   
-                  {isMenuOpen && (
+                  {isProfileOpen && (
                     <div className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 py-2 z-50">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900">{user.first_name || user.username}</p>
                         <p className="text-xs text-gray-500">{user.email}</p>
                       </div>
                       <button
-                        onClick={() => handleNavigation('/profile')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProfileNavigation('/profile');
+                        }}
                         className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 transition-colors"
                       >
                         <User className="h-4 w-4 mr-3" />
                         My Profile
                       </button>
                       <button
-                        onClick={() => handleNavigation('/events/create')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProfileNavigation('/events/create');
+                        }}
                         className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 transition-colors"
                       >
                         <Calendar className="h-4 w-4 mr-3" />
@@ -153,10 +164,11 @@ const Header = () => {
                       </button>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           logout();
                           navigate('/');
-                          setIsMenuOpen(false);
+                          setIsProfileOpen(false);
                         }}
                         className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
@@ -270,9 +282,9 @@ const Header = () => {
           </div>
         )}
       </div>
-      
+
       {/* Calendar Modal */}
-      <CalendarModal 
+      <HeaderCalendar 
         isOpen={isCalendarOpen} 
         onClose={() => setIsCalendarOpen(false)} 
       />

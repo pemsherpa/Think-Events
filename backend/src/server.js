@@ -14,6 +14,11 @@ import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/events.js';
 import bookingRoutes from './routes/bookings.js';
 import organizerRoutes from './routes/organizers.js';
+import excelRoutes from './routes/excel.js';
+import seatLayoutRoutes from './routes/seatLayout.js';
+
+// Import Excel sync service
+import { initializeSyncService } from './controllers/excelController.js';
 
 // Load environment variables
 dotenv.config();
@@ -81,6 +86,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/organizers', organizerRoutes);
+app.use('/api/excel', excelRoutes);
+app.use('/api/seat-layout', seatLayoutRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -148,6 +155,17 @@ const server = app.listen(PORT, () => {
   console.log(`📊 Environment: ${config.nodeEnv}`);
   console.log(`🌐 Frontend URL: ${config.frontendUrl}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  
+  // Initialize Excel sync service if Excel file path is provided
+  const excelFilePath = process.env.EXCEL_FILE_PATH || 'C:\\Users\\ALEX\\thinkevebn\\Think-Events\\event list .xlsx';
+  if (excelFilePath && fs.existsSync(excelFilePath)) {
+    console.log(`📊 Initializing Excel sync service with file: ${excelFilePath}`);
+    const syncService = initializeSyncService(excelFilePath);
+    syncService.startWatching();
+  } else {
+    console.log('⚠️  Excel file not found, Excel sync service not started');
+    console.log(`   Expected path: ${excelFilePath}`);
+  }
 });
 
 // Error handling for server

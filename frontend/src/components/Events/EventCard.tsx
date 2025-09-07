@@ -31,7 +31,18 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     return `रु ${price.toLocaleString()}`;
   };
 
+  const isEventExpired = () => {
+    const eventDate = new Date(event.start_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   const getAvailabilityStatus = () => {
+    if (isEventExpired()) {
+      return { text: 'Expired', color: 'bg-gray-500' };
+    }
+    
     const percentage = (event.available_seats / event.total_seats) * 100;
     if (percentage > 50) return { text: 'Available', color: 'bg-green-500' };
     if (percentage > 20) return { text: 'Filling Fast', color: 'bg-yellow-500' };
@@ -62,8 +73,14 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     navigate(`/event/${event.id}`);
   };
 
+  const expired = isEventExpired();
+
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 group">
+    <div className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-500 group ${
+      expired 
+        ? 'opacity-60 grayscale' 
+        : 'hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105'
+    }`}>
       <div className="relative cursor-pointer" onClick={handleCardClick}>
         <img 
           src={event.images && event.images.length > 0 
@@ -118,14 +135,21 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           
           <Button 
             size="sm" 
-            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto min-h-[40px] md:min-h-[36px] transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            className={`w-full sm:w-auto min-h-[40px] md:min-h-[36px] transition-all duration-300 ${
+              expired 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-purple-600 hover:bg-purple-700 hover:scale-105 hover:shadow-lg'
+            }`}
             onClick={(e) => {
               e.stopPropagation();
-              handleBookNow();
+              if (!expired) {
+                handleBookNow();
+              }
             }}
+            disabled={expired}
           >
             <Ticket className="h-3 w-3 md:h-4 md:w-4 mr-2" />
-            <span className="text-sm md:text-base">Book Now</span>
+            <span className="text-sm md:text-base">{expired ? 'Expired' : 'Book Now'}</span>
           </Button>
         </div>
 

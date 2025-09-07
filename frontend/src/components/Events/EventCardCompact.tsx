@@ -42,7 +42,18 @@ const EventCardCompact: React.FC<EventCardCompactProps> = ({ event, size = 'medi
     return `रु ${price.toLocaleString()}`;
   };
 
+  const isEventExpired = () => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  };
+
   const getAvailabilityColor = () => {
+    if (isEventExpired()) {
+      return 'text-gray-500';
+    }
+    
     const percentage = (event.availableSeats / event.totalSeats) * 100;
     if (percentage > 50) return 'text-green-600';
     if (percentage > 20) return 'text-yellow-600';
@@ -57,8 +68,14 @@ const EventCardCompact: React.FC<EventCardCompactProps> = ({ event, size = 'medi
     navigate(`/event/${event.id}`);
   };
 
+  const expired = isEventExpired();
+
   return (
-    <div className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${sizeClasses[size]} mx-auto`}>
+    <div className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${sizeClasses[size]} mx-auto ${
+      expired 
+        ? 'opacity-60 grayscale' 
+        : 'hover:shadow-xl transform hover:-translate-y-1'
+    }`}>
       {/* Image and Actions */}
       <div className="relative">
         <img 
@@ -134,11 +151,16 @@ const EventCardCompact: React.FC<EventCardCompactProps> = ({ event, size = 'medi
           </Button>
           <Button 
             size="sm" 
-            className="flex-1 bg-purple-600 hover:bg-purple-700"
-            onClick={handleBookNow}
+            className={`flex-1 ${
+              expired 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            }`}
+            onClick={expired ? undefined : handleBookNow}
+            disabled={expired}
           >
             <Ticket className="h-4 w-4 mr-2" />
-            Book Now
+            {expired ? 'Expired' : 'Book Now'}
           </Button>
         </div>
 

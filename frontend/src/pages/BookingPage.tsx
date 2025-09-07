@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Layout/Header';
 import SeatSelection from '@/components/Booking/SeatSelection';
+import DynamicSeatGrid from '@/components/SeatLayout/DynamicSeatGrid';
 import PaymentMethods from '@/components/Payment/PaymentMethods';
-import { bookingsAPI } from '@/services/api';
+import { bookingsAPI, seatLayoutAPI } from '@/services/api';
 import BookingForm, { BookingFormRef } from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
 import { usePromoCode } from '@/contexts/PromoCodeContext';
@@ -46,6 +47,7 @@ const BookingPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(null);
   const [isFormValid, setIsFormValid] = useState(false);
+  const [hasSeatLayout, setHasSeatLayout] = useState(false);
   const bookingFormRef = useRef<BookingFormRef>(null);
 
   useEffect(() => {
@@ -62,6 +64,15 @@ const BookingPage = () => {
       
       if (data.success) {
         setEvent(data.data);
+        
+        // Check if event has a seat layout
+        try {
+          const layoutResponse = await seatLayoutAPI.getLayout(parseInt(id!));
+          setHasSeatLayout(layoutResponse.success && layoutResponse.data?.layout);
+        } catch (layoutError) {
+          console.log('No seat layout found for this event');
+          setHasSeatLayout(false);
+        }
       } else {
         setError('Event not found');
       }
@@ -224,11 +235,19 @@ const BookingPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl shadow-lg p-6">
-                  <SeatSelection 
-                    onSeatsSelected={setSelectedSeats}
-                    onTotalPriceChange={setTotalPrice}
-                    eventId={id as any}
-                  />
+                  {hasSeatLayout ? (
+                    <DynamicSeatGrid 
+                      eventId={parseInt(id!)}
+                      onSeatsSelected={setSelectedSeats}
+                      onTotalPriceChange={setTotalPrice}
+                    />
+                  ) : (
+                    <SeatSelection 
+                      onSeatsSelected={setSelectedSeats}
+                      onTotalPriceChange={setTotalPrice}
+                      eventId={id as any}
+                    />
+                  )}
                   <div className="mt-6 flex justify-end">
                     <Button 
                       onClick={() => setActiveTab('info')}

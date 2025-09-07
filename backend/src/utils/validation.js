@@ -134,7 +134,12 @@ export const commonValidations = {
     .optional()
     .trim()
     .isLength({ max: 1000 })
-    .withMessage('Review comment must be less than 1000 characters')
+    .withMessage('Review comment must be less than 1000 characters'),
+  
+  imageUrl: body('image_url')
+    .optional()
+    .isURL()
+    .withMessage('Image URL must be a valid URL')
 };
 
 // Validation result handler

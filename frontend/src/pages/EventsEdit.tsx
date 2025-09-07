@@ -34,7 +34,7 @@ const EventsEdit = () => {
     try {
       setSubmitting(true);
       const payload: any = {};
-      ['title','description','category_id','venue_id','start_date','end_date','start_time','end_time','price','currency','total_seats','tags']
+      ['title','description','category_id','venue_id','start_date','end_date','start_time','end_time','price','currency','total_seats','tags','image_url']
         .forEach((k) => {
           if (form?.[k] !== undefined && form?.[k] !== null && form?.[k] !== '') payload[k] = form[k];
         });
@@ -82,6 +82,18 @@ const EventsEdit = () => {
           <div className="col-span-1 md:col-span-2">
             <label className="block text-sm font-medium mb-1">Description</label>
             <textarea name="description" value={form.description || ''} onChange={handleChange} className="w-full border rounded px-3 py-2 h-28" />
+          </div>
+
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium mb-1">Event Image URL</label>
+            <input 
+              type="url" 
+              name="image_url" 
+              value={form.image_url || ''} 
+              onChange={handleChange} 
+              className="w-full border rounded px-3 py-2" 
+              placeholder="https://example.com/image.jpg"
+            />
           </div>
 
           <div>

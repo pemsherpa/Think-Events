@@ -92,16 +92,10 @@ export const eventsAPI = {
     method: 'PUT',
     body: JSON.stringify(jsonBody),
   }),
-  create: (formData) => {
-    const token = getAuthToken();
-    return fetch(`${API_URL}/api/events`, {
-      method: 'POST',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: formData,
-    }).then(handleResponse);
-  },
+  create: (eventData) => apiRequest('/api/events', {
+    method: 'POST',
+    body: JSON.stringify(eventData),
+  }),
   delete: (id) => apiRequest(`/api/events/${id}`, { method: 'DELETE' }),
   getMine: () => apiRequest('/api/events/me/list'),
   
@@ -143,6 +137,39 @@ export const bookingsAPI = {
   getAvailableSeats: (eventId) => apiRequest(`/api/bookings/seats/${eventId}`),
   
   getStats: () => apiRequest('/api/bookings/stats/summary'),
+};
+
+// Seat Layout APIs
+export const seatLayoutAPI = {
+  getCategories: () => apiRequest('/api/seat-layout/categories'),
+  
+  createCategory: (categoryData) => apiRequest('/api/seat-layout/categories', {
+    method: 'POST',
+    body: JSON.stringify(categoryData),
+  }),
+  
+  getLayout: (eventId) => apiRequest(`/api/seat-layout/event/${eventId}`),
+  
+  getAvailableSeats: (eventId) => apiRequest(`/api/seat-layout/event/${eventId}/available`),
+  
+  createLayout: (eventId, layoutData) => apiRequest(`/api/seat-layout/event/${eventId}`, {
+    method: 'POST',
+    body: JSON.stringify(layoutData),
+  }),
+  
+  updateLayout: (layoutId, layoutData) => apiRequest(`/api/seat-layout/layout/${layoutId}`, {
+    method: 'PUT',
+    body: JSON.stringify(layoutData),
+  }),
+  
+  deleteLayout: (layoutId) => apiRequest(`/api/seat-layout/layout/${layoutId}`, {
+    method: 'DELETE',
+  }),
+  
+  bookSeats: (eventId, seatSelections) => apiRequest(`/api/seat-layout/event/${eventId}/book`, {
+    method: 'POST',
+    body: JSON.stringify({ seatSelections }),
+  }),
 };
 
 // Health check
