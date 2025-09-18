@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { APP_CONFIG, formatCurrency, calculateServiceFee, calculateTax, calculateTotal } from '@/config/appConfig';
 
 interface Seat {
   id: string;
@@ -117,20 +118,20 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       <div className="space-y-2 mb-4">
         <div className="flex justify-between text-sm">
           <span>Seats ({selectedSeats.length})</span>
-          <span>रु {totalPrice.toLocaleString()}</span>
+          <span>{formatCurrency(totalPrice)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Service Fee</span>
-          <span>रु {(totalPrice * 0.05).toFixed(0)}</span>
+          <span>{formatCurrency(calculateServiceFee(totalPrice))}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span>Tax</span>
-          <span>रु {(totalPrice * 0.13).toFixed(0)}</span>
+          <span>{formatCurrency(calculateTax(totalPrice + calculateServiceFee(totalPrice)))}</span>
         </div>
         {promoCode && (
           <div className="flex justify-between text-sm text-green-600">
             <span>Promo Code ({promoCode})</span>
-            <span>-रु {discountAmount.toLocaleString()}</span>
+            <span>-{formatCurrency(discountAmount)}</span>
           </div>
         )}
       </div>
@@ -144,10 +145,10 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           {promoCode && finalPrice === 0 ? (
             <div>
               <div className="text-green-600 text-xl">FREE</div>
-              <div className="text-sm text-gray-500 line-through">रु {(totalPrice * 1.18).toFixed(0)}</div>
+              <div className="text-sm text-gray-500 line-through">{formatCurrency(calculateTotal(totalPrice))}</div>
             </div>
           ) : (
-            <span className="text-purple-600">रु {finalPrice ? finalPrice.toLocaleString() : (totalPrice * 1.18).toFixed(0)}</span>
+            <span className="text-purple-600">{formatCurrency(finalPrice || calculateTotal(totalPrice))}</span>
           )}
         </div>
       </div>

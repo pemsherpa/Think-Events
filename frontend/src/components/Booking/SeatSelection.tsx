@@ -160,7 +160,12 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({ onSeatsSelected, onTotalP
     return seats;
   };
 
-  const [baseSeats] = useState<Seat[]>(generateSeats(venueType));
+  const [baseSeats, setBaseSeats] = useState<Seat[]>(generateSeats(venueType));
+
+  // Update seats when venue type changes
+  useEffect(() => {
+    setBaseSeats(generateSeats(venueType));
+  }, [venueType]);
 
   // fetch booked seats for the event
   useEffect(() => {

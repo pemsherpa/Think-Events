@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { seatLayoutAPI } from '@/services/api';
 import { Plus, Minus, ShoppingCart, AlertCircle } from 'lucide-react';
+import { APP_CONFIG, getSeatCategoryConfig, formatCurrency } from '@/config/appConfig';
 
 interface SeatCategory {
   id: number;
@@ -84,11 +85,36 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
       console.log('Seat layout response:', response);
       
       if (response.success && response.data.layout) {
-        setLayout(response.data.layout);
-        setSeats(response.data.seats || []);
+        // Map layout data to ensure proper property names
+        const layoutData = {
+          id: response.data.layout.id,
+          venueType: response.data.layout.venue_type,
+          bookingType: response.data.layout.booking_type,
+          maxBookingsPerSeat: response.data.layout.max_bookings_per_seat
+        };
+        setLayout(layoutData);
+        
+        // Map seat data from snake_case to camelCase
+        const mappedSeats = (response.data.seats || []).map((seat: any) => ({
+          id: seat.id,
+          rowNumber: seat.row_number,
+          columnNumber: seat.column_number,
+          seatNumber: seat.seat_number,
+          categoryId: seat.category_id,
+          price: parseFloat(seat.price) || 0,
+          maxCapacity: seat.max_capacity,
+          currentBookings: seat.current_bookings,
+          seatType: seat.seat_type,
+          isAvailable: seat.is_available,
+          categoryName: seat.category_name,
+          categoryColor: seat.category_color
+        }));
+        
+        setSeats(mappedSeats);
         setCategories(response.data.categories || []);
         console.log('Layout loaded:', response.data.layout);
-        console.log('Seats loaded:', response.data.seats?.length || 0);
+        console.log('Seats loaded:', mappedSeats.length);
+        console.log('Mapped seats:', mappedSeats);
       } else {
         console.log('No layout found for event:', eventId);
         setLayout(null);
@@ -205,7 +231,7 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
                 borderColor: isSelected ? '#7C3AED' : '#E5E7EB'
               }}
               onClick={() => handleSeatClick(seat)}
-              title={`${seat.seatNumber} - ${seat.categoryName} - ${seat.price ? `$${seat.price}` : 'Free'}${layout.bookingType === 'multiple' ? ` (${seat.currentBookings}/${seat.maxCapacity})` : ''}`}
+              title={`${seat.seatNumber} - ${seat.categoryName} - ${seat.price ? formatCurrency(seat.price) : 'Free'}${layout.bookingType === 'multiple' ? ` (${seat.currentBookings}/${seat.maxCapacity})` : ''}`}
             >
               {seat.seatNumber}
             </div>
@@ -306,7 +332,7 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
           </div>
           
           <div className="text-sm text-gray-600">
-            Price per ticket: ${simpleCounterPrice}
+            Price per ticket: {formatCurrency(simpleCounterPrice)}
           </div>
         </div>
       </div>
@@ -357,8 +383,8 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
                   )}
                   
                   <div className="text-right">
-                    <div className="font-medium">${seat.price * seat.quantity}</div>
-                    <div className="text-sm text-gray-600">${seat.price} each</div>
+                    <div className="font-medium">{formatCurrency(seat.price * seat.quantity)}</div>
+                    <div className="text-sm text-gray-600">{formatCurrency(seat.price)} each</div>
                   </div>
                 </div>
               </div>

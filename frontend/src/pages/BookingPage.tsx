@@ -13,6 +13,7 @@ import { bookingsAPI, seatLayoutAPI } from '@/services/api';
 import BookingForm, { BookingFormRef } from '@/components/Booking/BookingForm';
 import OrderSummary from '@/components/Booking/OrderSummary';
 import { usePromoCode } from '@/contexts/PromoCodeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Event {
   id: number;
@@ -39,6 +40,7 @@ const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getFinalPrice, activePromoCode } = usePromoCode();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('details');
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -56,6 +58,14 @@ const BookingPage = () => {
     }
   }, [id]);
 
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Redirect to login if user is not authenticated
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+    }
+  }, [user, authLoading, navigate]);
+
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
@@ -68,7 +78,7 @@ const BookingPage = () => {
         // Check if event has a seat layout
         try {
           const layoutResponse = await seatLayoutAPI.getLayout(parseInt(id!));
-          setHasSeatLayout(layoutResponse.success && layoutResponse.data?.layout);
+          setHasSeatLayout(layoutResponse.success && layoutResponse.data !== null && layoutResponse.data.layout !== null);
         } catch (layoutError) {
           console.log('No seat layout found for this event');
           setHasSeatLayout(false);
@@ -117,14 +127,37 @@ const BookingPage = () => {
     });
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p className="mt-2 text-gray-600">Loading event details...</p>
+            <p className="mt-2 text-gray-600">{authLoading ? 'Checking authentication...' : 'Loading event details...'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if user is not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-6 max-w-md mx-auto">
+              <h2 className="text-xl font-semibold mb-2">Login Required</h2>
+              <p className="text-sm mb-4">You need to be logged in to book seats for this event.</p>
+              <button
+                onClick={() => navigate('/login?redirect=' + encodeURIComponent(window.location.pathname))}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg"
+              >
+                Login to Continue
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -324,23 +357,37 @@ const BookingPage = () => {
                     eventId={id || ''}
                     onPaymentComplete={async () => {
                       try {
-                        // Create booking with selected seats
-                        const seat_numbers = selectedSeats.map((s: any) => s.id);
-                        const quantity = seat_numbers.length;
-                        const total_amount = Math.round(totalPrice * 1.18);
-                        const res = await bookingsAPI.create({
-                          event_id: event?.id,
-                          seat_numbers,
-                          quantity,
-                          total_amount,
-                          payment_method: 'wallet'
-                        });
-                        // Mark payment completed
-                        await bookingsAPI.updateStatus(res.data.id || res.data?.data?.id || res.id, { payment_status: 'completed' });
-                        alert('Payment completed successfully!');
+                        // Ensure user is authenticated
+                        if (!user) {
+                          alert('Please log in to complete your booking.');
+                          navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                          return;
+                        }
+
+                        console.log('Payment completed, booking seats:', selectedSeats);
+                        
+                        // Prepare seat selections for the seat booking API
+                        const seatSelections = selectedSeats.map((seat: any) => ({
+                          seatId: seat.seatId || seat.id, // Handle both DynamicSeatGrid and SeatSelection formats
+                          quantity: seat.quantity || 1
+                        }));
+                        
+                        console.log('Seat selections:', seatSelections);
+                        
+                        // Use the proper seat booking API
+                        const res = await seatLayoutAPI.bookSeats(parseInt(id!), seatSelections);
+                        console.log('Seat booking response:', res);
+                        
+                        if (res.success) {
+                          alert('Seats booked successfully! Your booking is confirmed.');
+                          // Refresh the page to show updated seat availability
+                          window.location.reload();
+                        } else {
+                          alert('Failed to book seats: ' + (res.message || 'Unknown error'));
+                        }
                       } catch (e) {
-                        console.error(e);
-                        alert('Failed to complete payment');
+                        console.error('Booking error:', e);
+                        alert('Failed to complete booking: ' + (e.message || 'Unknown error'));
                       }
                     }}
                   />
