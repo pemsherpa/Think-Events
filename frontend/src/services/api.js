@@ -8,8 +8,23 @@ const getAuthToken = () => {
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData && errorData.message) errorMessage = errorData.message;
+    } catch (_) {}
+
+    // Handle auth errors globally
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        // Redirect to login non-interactively
+        window.location.href = '/login?reason=expired';
+      }
+    }
+
+    throw new Error(errorMessage);
   }
   return response.json();
 };

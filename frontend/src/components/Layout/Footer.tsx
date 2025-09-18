@@ -16,7 +16,7 @@ const Footer = () => {
 
   const supportLinks = [
     { name: 'Help Center', href: '#' },
-    { name: 'Contact Us', href: '#' },
+    { name: 'Contact Us', path: '/contact' },
     { name: 'Terms of Service', href: '#' },
     { name: 'Privacy Policy', href: '#' },
   ];
@@ -95,12 +95,21 @@ const Footer = () => {
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.name}>
-                  <a 
-                    href={link.href}
-                    className="text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
-                  >
-                    {link.name}
-                  </a>
+                  {link.path ? (
+                    <button 
+                      onClick={() => navigate(link.path)}
+                      className="text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+                    >
+                      {link.name}
+                    </button>
+                  ) : (
+                    <a 
+                      href={link.href}
+                      className="text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+                    >
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

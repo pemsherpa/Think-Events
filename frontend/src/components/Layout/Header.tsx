@@ -92,7 +92,7 @@ const Header = () => {
                 key={item.title}
                 variant="ghost"
                 size="sm"
-                className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300 hover:scale-105 px-4 py-2"
+                className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl btn-smooth px-4 py-2"
                 onClick={() => handleNavigation(item.path)}
               >
                 <item.icon className="h-4 w-4" />
@@ -101,7 +101,7 @@ const Header = () => {
             ))}
             <Button 
               size="sm" 
-              className="ml-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" 
+              className="ml-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl shadow-lg hover:shadow-xl btn-smooth" 
               onClick={() => handleNavigation('/events/create')}
             >
               Create Event

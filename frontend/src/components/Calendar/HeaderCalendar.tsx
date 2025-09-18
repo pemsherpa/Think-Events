@@ -160,11 +160,11 @@ const HeaderCalendar: React.FC<HeaderCalendarProps> = ({ isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 z-[9999]"
       onClick={handleBackdropClick}
     >
       <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden transform"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-auto mt-20 mb-8 max-h-[calc(100vh-8rem)] overflow-hidden transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -183,7 +183,7 @@ const HeaderCalendar: React.FC<HeaderCalendarProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-12rem)]">
           {!user ? (
             <div className="text-center py-8">
               <CalendarIcon className="mx-auto h-10 w-10 text-gray-400 mb-3" />

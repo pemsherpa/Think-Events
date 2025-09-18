@@ -81,6 +81,12 @@ const Profile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [userStats, setUserStats] = useState({
+    memberSince: '',
+    eventsAttended: 0,
+    totalSpent: 0,
+    eventsCreated: 0
+  });
 
   useEffect(() => {
     if (user) {
@@ -103,6 +109,7 @@ const Profile = () => {
         }
       }));
       loadMyEvents();
+      loadUserStats();
     }
   }, [user]);
 
@@ -118,11 +125,45 @@ const Profile = () => {
     }
   };
 
+  const loadUserStats = async () => {
+    try {
+      // Get user stats from backend
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/user-stats`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUserStats({
+            memberSince: data.data.memberSince || new Date(user?.created_at || Date.now()).getFullYear().toString(),
+            eventsAttended: data.data.eventsAttended || 0,
+            totalSpent: data.data.totalSpent || 0,
+            eventsCreated: data.data.eventsCreated || myEvents.length
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+      // Fallback to basic data
+      setUserStats({
+        memberSince: new Date(user?.created_at || Date.now()).getFullYear().toString(),
+        eventsAttended: 0,
+        totalSpent: 0,
+        eventsCreated: myEvents.length
+      });
+    }
+  };
+
   const handleDeleteEvent = async (id: number) => {
     if (!confirm('Delete this event?')) return;
     try {
       await eventsAPI.delete(id);
       setMyEvents(prev => prev.filter(e => e.id !== id));
+      // Refresh user stats after deleting event
+      loadUserStats();
       toast({ title: 'Event deleted' });
     } catch (e:any) {
       toast({ title: 'Failed to delete', description: e.message, variant: 'destructive' });
@@ -367,15 +408,19 @@ const Profile = () => {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Member since</span>
-                      <span className="font-medium">2024</span>
+                      <span className="font-medium">{userStats.memberSince}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Events attended</span>
-                      <span className="font-medium">12</span>
+                      <span className="font-medium">{userStats.eventsAttended}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Events created</span>
+                      <span className="font-medium">{userStats.eventsCreated}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Total spent</span>
-                      <span className="font-medium">₹8,500</span>
+                      <span className="font-medium">₹{userStats.totalSpent.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>

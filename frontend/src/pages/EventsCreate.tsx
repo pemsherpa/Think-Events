@@ -153,7 +153,7 @@ const EventsCreate = () => {
                   <img
                     src={imagePreview}
                     alt="Event preview"
-                    className="w-full h-48 object-cover rounded-lg border"
+                    className="w-full h-64 md:h-80 object-cover md:object-contain rounded-lg border bg-black"
                     onError={() => setImagePreview(null)}
                   />
                   <button

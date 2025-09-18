@@ -76,10 +76,10 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const expired = isEventExpired();
 
   return (
-    <div className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-500 group ${
+    <div className={`bg-white rounded-xl shadow-lg overflow-hidden card-hover group ${
       expired 
         ? 'opacity-60 grayscale' 
-        : 'hover:shadow-2xl transform hover:-translate-y-2 hover:scale-105'
+        : ''
     }`}>
       <div className="relative cursor-pointer" onClick={handleCardClick}>
         <img 
@@ -100,6 +100,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             {availability.text}
           </Badge>
         </div>
+        {availability.text === 'Sold Out' && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <span className="px-3 py-1 bg-red-600 text-white text-xs rounded-md shadow">Sold Out</span>
+          </div>
+        )}
       </div>
 
       <div className="p-3 md:p-4">

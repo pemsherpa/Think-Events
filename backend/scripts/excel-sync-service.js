@@ -74,20 +74,20 @@ class ExcelSyncService {
         
         try {
           // Extract data (adjust column names based on your Excel structure)
-          const title = row['Event Title'] || row['Title'] || row['title'] || `Event ${i + 1}`;
+          const title = row['Event'] || row['Event Title'] || row['Title'] || row['title'] || `Event ${i + 1}`;
           const description = row['Description'] || row['description'] || 'Event description';
           const categoryName = row['Category'] || row['category'] || 'General';
           const venueName = row['Venue'] || row['venue'] || 'TBD';
-          const venueCity = row['City'] || row['city'] || 'Kathmandu';
+          const venueCity = row['location'] || row['City'] || row['city'] || 'Kathmandu';
           const venueAddress = row['Address'] || row['address'] || '';
-          const startDate = row['Start Date'] || row['start_date'] || row['StartDate'];
+          const startDate = row['date'] || row['Start Date'] || row['start_date'] || row['StartDate'];
           const endDate = row['End Date'] || row['end_date'] || row['EndDate'] || startDate;
           const startTime = row['Start Time'] || row['start_time'] || row['StartTime'] || '18:00';
           const endTime = row['End Time'] || row['end_time'] || row['EndTime'] || '22:00';
           const price = parseFloat(row['Price'] || row['price'] || '0') || 0;
           const currency = row['Currency'] || row['currency'] || 'NPR';
           const totalSeats = parseInt(row['Total Seats'] || row['total_seats'] || row['TotalSeats'] || '100') || 100;
-          const imageUrl = row['Image URL'] || row['image_url'] || row['ImageUrl'] || null;
+          const imageUrl = row['Thumbnail_1'] || row['Image URL'] || row['image_url'] || row['ImageUrl'] || null;
           const organizerName = row['Organizer'] || row['organizer'] || 'Event Organizer';
           const tags = row['Tags'] || row['tags'] || null;
           

@@ -936,3 +936,63 @@ export const deleteAccount = async (req, res) => {
     });
   }
 };
+
+// Get user statistics
+export const getUserStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user's join date
+    const userResult = await query(
+      'SELECT created_at FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const memberSince = new Date(userResult.rows[0].created_at).getFullYear().toString();
+
+    // Get events attended count
+    const eventsAttendedResult = await query(
+      'SELECT COUNT(*) as count FROM bookings WHERE user_id = $1 AND status = $2',
+      [userId, 'confirmed']
+    );
+    const eventsAttended = parseInt(eventsAttendedResult.rows[0].count);
+
+    // Get total spent
+    const totalSpentResult = await query(
+      'SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings WHERE user_id = $1 AND status = $2',
+      [userId, 'confirmed']
+    );
+    const totalSpent = parseFloat(totalSpentResult.rows[0].total);
+
+    // Get events created count
+    const eventsCreatedResult = await query(
+      'SELECT COUNT(*) as count FROM events WHERE organizer_id = $1',
+      [userId]
+    );
+    const eventsCreated = parseInt(eventsCreatedResult.rows[0].count);
+
+    res.json({
+      success: true,
+      data: {
+        memberSince,
+        eventsAttended,
+        totalSpent,
+        eventsCreated
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user statistics'
+    });
+  }
+};

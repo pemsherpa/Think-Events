@@ -60,4 +60,6 @@ router.post('/logout', authenticateToken, authController.logout);
 
 router.delete('/account', authenticateToken, authController.deleteAccount);
 
+router.get('/user-stats', authenticateToken, authController.getUserStats);
+
 export default router;

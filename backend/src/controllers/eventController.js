@@ -10,7 +10,7 @@ export const getEvents = async (req, res) => {
       maxPrice, 
       date, 
       page = 1, 
-      limit = 12,
+      limit = 8,
       sortBy = 'start_date',
       sortOrder = 'ASC'
     } = req.query;
@@ -100,14 +100,14 @@ export const getEvents = async (req, res) => {
     const totalPages = Math.ceil(totalEvents / limit);
     const offset = (page - 1) * limit;
 
-    // Get events with pagination
+    // Get events with pagination - optimized query
     const eventsQuery = `
       SELECT 
         e.id, e.title, e.description, e.start_date, e.start_time, e.end_time,
         e.price, e.currency, e.total_seats, e.available_seats, e.status,
-        e.images, e.tags, e.rating, e.review_count, e.created_at,
-        c.name as category_name, c.color as category_color,
-        v.name as venue_name, v.city as venue_city, v.country as venue_country,
+        e.images, e.tags, e.created_at,
+        c.name as category_name,
+        v.name as venue_name, v.city as venue_city,
         u.username as organizer_name
       FROM events e 
       LEFT JOIN categories c ON e.category_id = c.id 

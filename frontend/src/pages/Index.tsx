@@ -63,7 +63,7 @@ const Index = () => {
           queryParams.sortOrder = 'DESC';
       }
       
-      const response = await eventsAPI.getAll(queryParams);
+      const response = await eventsAPI.getAll({ ...queryParams, limit: 6 });
       setEvents(response.data.events || []);
       setError(null);
     } catch (err) {
@@ -150,7 +150,7 @@ const Index = () => {
           
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div className="inline-block animate-pulse-smooth rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
               <p className="mt-2 text-gray-600">Loading events...</p>
             </div>
           ) : error ? (
@@ -176,10 +176,10 @@ const Index = () => {
           )}
 
           <div className="text-center mt-12">
-            <button 
-              onClick={handleViewAllEvents}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
-            >
+              <button 
+                onClick={handleViewAllEvents}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-medium btn-smooth"
+              >
               View All Events
             </button>
           </div>

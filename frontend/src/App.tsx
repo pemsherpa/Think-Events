@@ -25,6 +25,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import EventsCreate from "./pages/EventsCreate";
 import EventsEdit from "./pages/EventsEdit";
+import Contact from "./pages/Contact";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
@@ -74,6 +75,7 @@ const App = () => {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/contact" element={<Contact />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

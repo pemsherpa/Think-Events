@@ -78,18 +78,25 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
       setLoading(true);
       setError(null);
 
+      console.log('Fetching seat layout for event:', eventId);
       const response = await seatLayoutAPI.getAvailableSeats(eventId);
+      
+      console.log('Seat layout response:', response);
       
       if (response.success && response.data.layout) {
         setLayout(response.data.layout);
         setSeats(response.data.seats || []);
         setCategories(response.data.categories || []);
+        console.log('Layout loaded:', response.data.layout);
+        console.log('Seats loaded:', response.data.seats?.length || 0);
       } else {
+        console.log('No layout found for event:', eventId);
         setLayout(null);
         setSeats([]);
         setCategories([]);
       }
     } catch (error: any) {
+      console.error('Error fetching seat layout:', error);
       setError(error.message || 'Failed to load seat layout');
     } finally {
       setLoading(false);
@@ -198,7 +205,7 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
                 borderColor: isSelected ? '#7C3AED' : '#E5E7EB'
               }}
               onClick={() => handleSeatClick(seat)}
-              title={`${seat.seatNumber} - ${seat.categoryName} - $${seat.price}${layout.bookingType === 'multiple' ? ` (${seat.currentBookings}/${seat.maxCapacity})` : ''}`}
+              title={`${seat.seatNumber} - ${seat.categoryName} - ${seat.price ? `$${seat.price}` : 'Free'}${layout.bookingType === 'multiple' ? ` (${seat.currentBookings}/${seat.maxCapacity})` : ''}`}
             >
               {seat.seatNumber}
             </div>

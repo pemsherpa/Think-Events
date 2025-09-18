@@ -155,17 +155,10 @@ const server = app.listen(PORT, () => {
   console.log(`📊 Environment: ${config.nodeEnv}`);
   console.log(`🌐 Frontend URL: ${config.frontendUrl}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  
-  // Initialize Excel sync service if Excel file path is provided
-  const excelFilePath = process.env.EXCEL_FILE_PATH || 'C:\\Users\\ALEX\\thinkevebn\\Think-Events\\event list .xlsx';
-  if (excelFilePath && fs.existsSync(excelFilePath)) {
-    console.log(`📊 Initializing Excel sync service with file: ${excelFilePath}`);
-    const syncService = initializeSyncService(excelFilePath);
-    syncService.startWatching();
-  } else {
-    console.log('⚠️  Excel file not found, Excel sync service not started');
-    console.log(`   Expected path: ${excelFilePath}`);
-  }
+  // Excel sync service disabled at startup. Use manual command:
+  //   npm run excel:import "<path-to-excel>"
+  // or start watcher explicitly:
+  //   npm run excel:sync "<path-to-excel>"
 });
 
 // Error handling for server

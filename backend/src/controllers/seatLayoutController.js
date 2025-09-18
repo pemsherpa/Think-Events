@@ -383,6 +383,7 @@ export const getAvailableSeats = async (req, res) => {
         sc.color as category_color,
         sc.description as category_description,
         CASE 
+          WHEN s.seat_type = 'disabled' THEN FALSE
           WHEN sl.booking_type = 'one_time' THEN 
             CASE WHEN s.current_bookings >= s.max_capacity THEN FALSE ELSE TRUE END
           ELSE 

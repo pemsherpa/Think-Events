@@ -89,12 +89,13 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
           columnNumber: col,
           seatNumber,
           categoryId: selectedCategory || categories[0]?.id || 1,
-          price: selectedPrice,
-          maxCapacity: selectedMaxCapacity,
+          price: selectedPrice || 0,
+          maxCapacity: selectedMaxCapacity || 1,
           seatType: 'standard'
         });
       }
     }
+    console.log('Generated seats:', newSeats);
     setSeats(newSeats);
   };
 
@@ -115,6 +116,32 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
           ? { ...seat, ...updates }
           : seat
       )
+    );
+  };
+
+  const updateSeatsByRow = (rowNumber: number, updates: Partial<Seat>) => {
+    setSeats(prevSeats => 
+      prevSeats.map(seat => 
+        seat.rowNumber === rowNumber
+          ? { ...seat, ...updates }
+          : seat
+      )
+    );
+  };
+
+  const updateSeatsByColumn = (columnNumber: number, updates: Partial<Seat>) => {
+    setSeats(prevSeats => 
+      prevSeats.map(seat => 
+        seat.columnNumber === columnNumber
+          ? { ...seat, ...updates }
+          : seat
+      )
+    );
+  };
+
+  const updateAllSeats = (updates: Partial<Seat>) => {
+    setSeats(prevSeats => 
+      prevSeats.map(seat => ({ ...seat, ...updates }))
     );
   };
 
@@ -148,7 +175,13 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
         seats: venueType !== 'simple_counter' ? seats : []
       };
 
+      console.log('Saving layout data:', layoutData);
+      console.log('Seats count:', seats.length);
+      console.log('Event ID:', eventId);
+
       const response = await seatLayoutAPI.createLayout(eventId, layoutData);
+      
+      console.log('Layout creation response:', response);
       
       if (response.success) {
         onLayoutCreated?.(response.data);
@@ -156,6 +189,7 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
         setError(response.message || 'Failed to create seat layout');
       }
     } catch (error: any) {
+      console.error('Layout creation error:', error);
       setError(error.message || 'Failed to create seat layout');
     } finally {
       setLoading(false);
@@ -213,8 +247,77 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
       <div className="border rounded-lg p-4 bg-gray-50">
         <div className="mb-4">
           <h4 className="font-medium mb-2">Seat Grid Preview</h4>
-          <div className="text-sm text-gray-600 mb-2">
+          <div className="text-sm text-gray-600 mb-4">
             Click on seats to assign categories. Current selection: {getCategoryName(selectedCategory || 0)}
+          </div>
+          
+          {/* Bulk Selection Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bulk Row Selection</Label>
+              <div className="flex gap-2">
+                <Select onValueChange={(value) => updateSeatsByRow(parseInt(value), { categoryId: selectedCategory || 1, price: selectedPrice })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Row" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: totalRows }, (_, i) => (
+                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                        Row {String.fromCharCode(64 + i + 1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={() => {
+                  if (selectedCategory) {
+                    updateSeatsByRow(1, { categoryId: selectedCategory, price: selectedPrice });
+                  }
+                }}>
+                  Apply
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Bulk Column Selection</Label>
+              <div className="flex gap-2">
+                <Select onValueChange={(value) => updateSeatsByColumn(parseInt(value), { categoryId: selectedCategory || 1, price: selectedPrice })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: totalColumns }, (_, i) => (
+                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                        Column {i + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={() => {
+                  if (selectedCategory) {
+                    updateSeatsByColumn(1, { categoryId: selectedCategory, price: selectedPrice });
+                  }
+                }}>
+                  Apply
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Apply to All</Label>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  if (selectedCategory) {
+                    updateAllSeats({ categoryId: selectedCategory, price: selectedPrice });
+                  }
+                }}
+              >
+                Apply Current Settings to All Seats
+              </Button>
+            </div>
           </div>
         </div>
         <div className="flex justify-center">
