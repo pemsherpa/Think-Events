@@ -255,11 +255,17 @@ const MyBookings = () => {
     });
   };
 
+  const isEventExpired = (booking: Booking) => {
+    const eventDateTime = new Date(`${booking.event_date}T${booking.event_time}`);
+    return eventDateTime < new Date();
+  };
+
   const filteredBookings = {
     all: bookings,
     confirmed: bookings.filter(b => b.status === 'confirmed'),
     pending: bookings.filter(b => b.status === 'pending'),
-    cancelled: bookings.filter(b => b.status === 'cancelled')
+    cancelled: bookings.filter(b => b.status === 'cancelled'),
+    expired: bookings.filter(b => b.status === 'confirmed' && isEventExpired(b))
   };
 
   if (loading) {
@@ -302,17 +308,23 @@ const MyBookings = () => {
         </div>
       ) : (
         <Tabs defaultValue="all" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all">All ({filteredBookings.all.length})</TabsTrigger>
             <TabsTrigger value="confirmed">Confirmed ({filteredBookings.confirmed.length})</TabsTrigger>
             <TabsTrigger value="pending">Pending ({filteredBookings.pending.length})</TabsTrigger>
             <TabsTrigger value="cancelled">Cancelled ({filteredBookings.cancelled.length})</TabsTrigger>
+            <TabsTrigger value="expired">Expired ({filteredBookings.expired.length})</TabsTrigger>
           </TabsList>
 
           {Object.entries(filteredBookings).map(([status, statusBookings]) => (
             <TabsContent key={status} value={status} className="space-y-4">
               {statusBookings.map((booking) => (
-                <div key={booking.id} className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+                <div 
+                  key={booking.id} 
+                  className={`bg-white rounded-2xl shadow-lg border overflow-hidden ${
+                    isEventExpired(booking) ? 'opacity-60 grayscale' : ''
+                  }`}
+                >
                   <div className="flex items-stretch">
                     <div className="hidden md:flex bg-gradient-to-b from-purple-600 to-indigo-600 text-white px-4 py-6 items-center justify-center">
                       <Ticket className="h-7 w-7" />
@@ -327,6 +339,12 @@ const MyBookings = () => {
                             {getStatusIcon(booking.status)}
                             <span className="ml-1 capitalize">{booking.status}</span>
                           </Badge>
+                          {isEventExpired(booking) && (
+                            <Badge className="bg-gray-500 text-white">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              EXPIRED
+                            </Badge>
+                          )}
                           <Badge className={getPaymentStatusColor(booking.payment_status)}>
                             {booking.payment_status.toUpperCase()}
                           </Badge>
@@ -379,19 +397,24 @@ const MyBookings = () => {
                     </div>
 
                     <div className="flex flex-col space-y-2 lg:ml-4">
-                      {booking.status === 'pending' && (
+                      {booking.status === 'pending' && !isEventExpired(booking) && (
                         <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleCompletePayment(booking.id)}>
                           Complete Payment
                         </Button>
                       )}
-                      {booking.status === 'confirmed' && (
+                      {booking.status === 'confirmed' && !isEventExpired(booking) && (
                         <Button size="sm" variant="outline" onClick={() => handleDownloadTicket(booking)}>
                           Download Ticket
                         </Button>
                       )}
-                      {booking.status !== 'cancelled' && (
+                      {booking.status !== 'cancelled' && !isEventExpired(booking) && (
                         <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancel(booking.id)}>
                           Cancel Booking
+                        </Button>
+                      )}
+                      {isEventExpired(booking) && (
+                        <Button size="sm" variant="outline" disabled className="text-gray-500">
+                          Event Expired
                         </Button>
                       )}
                       {user && (user.id === (booking as any).event_organizer_id) && (

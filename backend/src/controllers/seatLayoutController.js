@@ -453,41 +453,69 @@ export const bookSeats = async (req, res) => {
       let totalAmount = 0;
       const seatBookings = [];
       
-      // Validate and calculate total for each seat selection
-      for (const selection of seatSelections) {
-        const { seatId, quantity } = selection;
-        
-        // Get seat details
-        const seatResult = await query(`
-          SELECT s.*, sc.name as category_name
-          FROM seats s
-          LEFT JOIN seat_categories sc ON s.category_id = sc.id
-          WHERE s.id = $1 AND s.layout_id = $2
-        `, [seatId, layout.id]);
-        
-        if (seatResult.rows.length === 0) {
-          throw new Error(`Seat ${seatId} not found`);
+      // Handle simple_counter vs regular seat bookings
+      if (layout.venue_type === 'simple_counter') {
+        // For simple_counter, we don't have individual seats
+        // Just process the quantity directly
+        for (const selection of seatSelections) {
+          const { quantity } = selection;
+          
+          // For simple counter, we need to get the price from the event or layout config
+          const eventResult = await query('SELECT price FROM events WHERE id = $1', [eventId]);
+          if (eventResult.rows.length === 0) {
+            throw new Error('Event not found');
+          }
+          
+          const unitPrice = eventResult.rows[0].price || 0;
+          const seatTotal = unitPrice * quantity;
+          totalAmount += seatTotal;
+          
+          seatBookings.push({
+            seatId: 0, // Special ID for simple counter
+            quantity,
+            unitPrice,
+            totalPrice: seatTotal,
+            seatNumber: 'GENERAL',
+            categoryName: 'General Admission'
+          });
         }
-        
-        const seat = seatResult.rows[0];
-        
-        // Check availability
-        const availableCapacity = seat.max_capacity - seat.current_bookings;
-        if (quantity > availableCapacity) {
-          throw new Error(`Not enough capacity for seat ${seat.seat_number}. Available: ${availableCapacity}, Requested: ${quantity}`);
+      } else {
+        // Regular seat booking logic
+        for (const selection of seatSelections) {
+          const { seatId, quantity } = selection;
+          
+          // Get seat details
+          const seatResult = await query(`
+            SELECT s.*, sc.name as category_name
+            FROM seats s
+            LEFT JOIN seat_categories sc ON s.category_id = sc.id
+            WHERE s.id = $1 AND s.layout_id = $2
+          `, [seatId, layout.id]);
+          
+          if (seatResult.rows.length === 0) {
+            throw new Error(`Seat ${seatId} not found`);
+          }
+          
+          const seat = seatResult.rows[0];
+          
+          // Check availability
+          const availableCapacity = seat.max_capacity - seat.current_bookings;
+          if (quantity > availableCapacity) {
+            throw new Error(`Not enough capacity for seat ${seat.seat_number}. Available: ${availableCapacity}, Requested: ${quantity}`);
+          }
+          
+          const seatTotal = seat.price * quantity;
+          totalAmount += seatTotal;
+          
+          seatBookings.push({
+            seatId,
+            quantity,
+            unitPrice: seat.price,
+            totalPrice: seatTotal,
+            seatNumber: seat.seat_number,
+            categoryName: seat.category_name
+          });
         }
-        
-        const seatTotal = seat.price * quantity;
-        totalAmount += seatTotal;
-        
-        seatBookings.push({
-          seatId,
-          quantity,
-          unitPrice: seat.price,
-          totalPrice: seatTotal,
-          seatNumber: seat.seat_number,
-          categoryName: seat.category_name
-        });
       }
       
       // Create main booking
@@ -522,12 +550,14 @@ export const bookSeats = async (req, res) => {
           seatBooking.totalPrice
         ]);
         
-        // Update seat availability
-        await query(`
-          UPDATE seats 
-          SET current_bookings = current_bookings + $1
-          WHERE id = $2
-        `, [seatBooking.quantity, seatBooking.seatId]);
+        // Update seat availability (skip for simple_counter with seatId = 0)
+        if (seatBooking.seatId !== 0) {
+          await query(`
+            UPDATE seats 
+            SET current_bookings = current_bookings + $1
+            WHERE id = $2
+          `, [seatBooking.quantity, seatBooking.seatId]);
+        }
       }
       
       // Update event available seats

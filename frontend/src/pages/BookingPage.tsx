@@ -77,8 +77,9 @@ const BookingPage = () => {
         
         // Check if event has a seat layout
         try {
-          const layoutResponse = await seatLayoutAPI.getLayout(parseInt(id!));
-          setHasSeatLayout(layoutResponse.success && layoutResponse.data !== null && layoutResponse.data.layout !== null);
+          const layoutResponse = await seatLayoutAPI.getAvailableSeats(parseInt(id!));
+          const hasLayout = layoutResponse.success && layoutResponse.data !== null && layoutResponse.data.layout !== null;
+          setHasSeatLayout(hasLayout);
         } catch (layoutError) {
           console.log('No seat layout found for this event');
           setHasSeatLayout(false);
@@ -366,16 +367,30 @@ const BookingPage = () => {
 
                         console.log('Payment completed, booking seats:', selectedSeats);
                         
-                        // Prepare seat selections for the seat booking API
-                        const seatSelections = selectedSeats.map((seat: any) => ({
-                          seatId: seat.seatId || seat.id, // Handle both DynamicSeatGrid and SeatSelection formats
-                          quantity: seat.quantity || 1
-                        }));
+                        let res;
                         
-                        console.log('Seat selections:', seatSelections);
-                        
-                        // Use the proper seat booking API
-                        const res = await seatLayoutAPI.bookSeats(parseInt(id!), seatSelections);
+                        if (hasSeatLayout) {
+                          // Custom seat layout - use seat layout API
+                          const seatSelections = selectedSeats.map((seat: any) => ({
+                            seatId: parseInt(seat.seatId || seat.id), // Convert to integer as required by backend validation
+                            quantity: parseInt(seat.quantity || 1) // Ensure quantity is also an integer
+                          }));
+                          
+                          console.log('Seat selections:', seatSelections);
+                          res = await seatLayoutAPI.bookSeats(parseInt(id!), seatSelections);
+                        } else {
+                          // Default seat selection - use regular booking API
+                          const bookingData = {
+                            event_id: parseInt(id!),
+                            seat_numbers: selectedSeats.map((seat: any) => seat.id || seat.seatNumber),
+                            quantity: selectedSeats.length,
+                            total_amount: totalPrice,
+                            payment_method: 'online'
+                          };
+                          
+                          console.log('Booking data:', bookingData);
+                          res = await bookingsAPI.create(bookingData);
+                        }
                         console.log('Seat booking response:', res);
                         
                         if (res.success) {

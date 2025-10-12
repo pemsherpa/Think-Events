@@ -41,4 +41,9 @@ router.delete('/:id', [
   authenticateToken,
 ], eventController.deleteEvent);
 
+// Upload event image
+router.post('/upload-image', [
+  authenticateToken,
+], eventController.uploadEventImage);
+
 export default router;

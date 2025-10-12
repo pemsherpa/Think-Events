@@ -256,3 +256,4 @@ export const calculateTotal = (baseAmount: number) => {
   const tax = calculateTax(baseAmount + serviceFee);
   return baseAmount + serviceFee + tax;
 };
+

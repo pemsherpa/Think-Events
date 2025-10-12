@@ -21,8 +21,10 @@ const EventsCreate = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [showSeatLayout, setShowSeatLayout] = useState(false);
   const [createdEventId, setCreatedEventId] = useState<number | null>(null);
+  const [eventCreated, setEventCreated] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
@@ -44,10 +46,9 @@ const EventsCreate = () => {
   });
 
   const steps = [
-    { id: 1, title: 'Basic Info', icon: FileText, description: 'Event details and description' },
-    { id: 2, title: 'Venue & Date', icon: MapPin, description: 'Location and timing' },
-    { id: 3, title: 'Pricing & Capacity', icon: DollarSign, description: 'Tickets and seating' },
-    { id: 4, title: 'Review & Create', icon: CheckCircle, description: 'Final review and publish' }
+    { id: 1, title: 'Event Details', icon: FileText, description: 'Basic information and description' },
+    { id: 2, title: 'Venue & Timing', icon: MapPin, description: 'Location, date and capacity' },
+    { id: 3, title: 'Create Event', icon: CheckCircle, description: 'Review and publish' }
   ];
 
   useEffect(() => {
@@ -90,16 +91,14 @@ const EventsCreate = () => {
         if (!form.venue_city.trim()) errors.venue_city = 'City is required';
         if (!form.start_date) errors.start_date = 'Start date is required';
         if (!form.start_time) errors.start_time = 'Start time is required';
-        if (form.end_date && new Date(form.end_date) < new Date(form.start_date)) {
-          errors.end_date = 'End date cannot be before start date';
-        }
-        break;
-      case 3:
         if (!form.total_seats || parseInt(form.total_seats) <= 0) {
           errors.total_seats = 'Total seats must be greater than 0';
         }
         if (form.price && parseFloat(form.price) < 0) {
           errors.price = 'Price cannot be negative';
+        }
+        if (form.end_date && new Date(form.end_date) < new Date(form.start_date)) {
+          errors.end_date = 'End date cannot be before start date';
         }
         break;
     }
@@ -110,7 +109,7 @@ const EventsCreate = () => {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 3));
     }
   };
 
@@ -132,6 +131,58 @@ const EventsCreate = () => {
     setImagePreview(null);
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (JPEG, PNG, etc.)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Please select an image smaller than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('eventImage', file);
+
+      // Upload to server
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/events/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setForm(prev => ({
+          ...prev,
+          image_url: data.data.image_url
+        }));
+        setImagePreview(data.data.image_url);
+      } else {
+        throw new Error(data.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setError('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const validate = () => {
     if (!form.title || !form.category_id || !form.venue_name || !form.venue_city || !form.start_date || !form.start_time || !form.total_seats) {
       return 'Please fill all required fields';
@@ -146,12 +197,17 @@ const EventsCreate = () => {
     e.preventDefault();
     console.log('Form submitted!', form);
     
+    // Prevent multiple event creation
+    if (eventCreated) {
+      console.log('Event already created, preventing duplicate creation');
+      return;
+    }
+    
     // Validate all steps before submission
     const step1Valid = validateStep(1);
     const step2Valid = validateStep(2);
-    const step3Valid = validateStep(3);
     
-    if (!step1Valid || !step2Valid || !step3Valid) {
+    if (!step1Valid || !step2Valid) {
       setError('Please complete all required fields before submitting');
       return;
     }
@@ -184,6 +240,7 @@ const EventsCreate = () => {
       
       if (res.success) {
         setCreatedEventId(res.data.id);
+        setEventCreated(true);
         setShowSeatLayout(true);
         console.log('Event created successfully with ID:', res.data.id);
         // Show success message
@@ -301,13 +358,39 @@ const EventsCreate = () => {
                       <p className="text-sm text-gray-500">Supports JPG, PNG, GIF formats</p>
                     </div>
                   )}
-                  <Input
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={form.image_url || ''}
-                    onChange={(e) => handleImageUrlChange(e.target.value)}
-                    className="focus:border-purple-500 transition-all"
-                  />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="imageFile" className="text-sm font-medium text-gray-700 mb-2 block">
+                        Upload from Computer
+                      </Label>
+                      <Input
+                        id="imageFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="focus:border-purple-500 transition-all"
+                      />
+                      {uploadingImage && (
+                        <p className="text-sm text-purple-600 mt-1">Uploading image...</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="image_url" className="text-sm font-medium text-gray-700 mb-2 block">
+                        Or paste image URL
+                      </Label>
+                      <Input
+                        id="image_url"
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        value={form.image_url || ''}
+                        onChange={(e) => handleImageUrlChange(e.target.value)}
+                        className="focus:border-purple-500 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -320,9 +403,9 @@ const EventsCreate = () => {
             <CardHeader className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-t-lg">
               <CardTitle className="flex items-center gap-3">
                 <MapPin className="h-6 w-6" />
-                Venue & Date
+                Venue, Date & Pricing
               </CardTitle>
-              <p className="text-blue-100">Where and when will it happen?</p>
+              <p className="text-blue-100">Where, when, and how much?</p>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -467,122 +550,79 @@ const EventsCreate = () => {
                   />
                 </div>
               </div>
+
+              {/* Pricing and Capacity Section */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-blue-600" />
+                  Pricing & Capacity
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
+                      <span className="text-blue-600">💵</span>
+                      Ticket Price (NPR)
+                    </Label>
+                    <Input
+                      name="price"
+                      type="number"
+                      value={form.price}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className={`transition-all ${formErrors.price ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
+                    />
+                    {formErrors.price && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {formErrors.price}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500">Leave empty for free events</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="total_seats" className="text-sm font-medium flex items-center gap-2">
+                      <Users className="h-4 w-4 text-blue-600" />
+                      Total Seats *
+                    </Label>
+                    <Input
+                      name="total_seats"
+                      type="number"
+                      value={form.total_seats}
+                      onChange={handleChange}
+                      placeholder="100"
+                      className={`transition-all ${formErrors.total_seats ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
+                    />
+                    {formErrors.total_seats && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {formErrors.total_seats}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-2">
+                  <Label htmlFor="tags" className="text-sm font-medium flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-blue-600" />
+                    Tags
+                  </Label>
+                  <Input
+                    name="tags"
+                    value={form.tags}
+                    onChange={handleChange}
+                    placeholder="music, live, outdoor, family-friendly"
+                    className="focus:border-blue-500 transition-all"
+                  />
+                  <p className="text-xs text-gray-500">Separate tags with commas to help people find your event</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         );
 
       case 3:
-        return (
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-3">
-                <DollarSign className="h-6 w-6" />
-                Pricing & Capacity
-              </CardTitle>
-              <p className="text-green-100">Set your ticket prices and capacity</p>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="price" className="text-sm font-medium flex items-center gap-2">
-                    <span className="text-green-600">💵</span>
-                    Ticket Price (NPR)
-                  </Label>
-                  <Input
-                    name="price"
-                    type="number"
-                    value={form.price}
-                    onChange={handleChange}
-                    placeholder="0"
-                    className={`transition-all ${formErrors.price ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
-                  />
-                  {formErrors.price && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {formErrors.price}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">Leave empty for free events</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="total_seats" className="text-sm font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4 text-green-600" />
-                    Total Seats *
-                  </Label>
-                  <Input
-                    name="total_seats"
-                    type="number"
-                    value={form.total_seats}
-                    onChange={handleChange}
-                    placeholder="100"
-                    className={`transition-all ${formErrors.total_seats ? 'border-red-500 focus:border-red-500' : 'focus:border-green-500'}`}
-                  />
-                  {formErrors.total_seats && (
-                    <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-4 w-4" />
-                      {formErrors.total_seats}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tags" className="text-sm font-medium flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-green-600" />
-                  Tags
-                </Label>
-                <Input
-                  name="tags"
-                  value={form.tags}
-                  onChange={handleChange}
-                  placeholder="music, live, outdoor, family-friendly"
-                  className="focus:border-green-500 transition-all"
-                />
-                <p className="text-xs text-gray-500">Separate tags with commas to help people find your event</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-green-600" />
-                  Custom Seating Layout
-                </Label>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-green-800">Enable custom seat layout</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // This will be handled after event creation
-                        console.log('Custom seating layout will be configured after event creation');
-                      }}
-                      className="text-green-700 border-green-300 hover:bg-green-100"
-                    >
-                      Configure Later
-                    </Button>
-                  </div>
-                  <p className="text-xs text-green-600">
-                    You can set up custom seating arrangements after creating the event. This allows for specific seat selection during booking.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-medium text-green-800 mb-2">💡 Pro Tips</h4>
-                <ul className="text-sm text-green-700 space-y-1">
-                  <li>• Consider offering early bird discounts</li>
-                  <li>• Set capacity based on venue size and safety regulations</li>
-                  <li>• Use descriptive tags to improve discoverability</li>
-                  <li>• Custom seating layouts allow attendees to choose specific seats</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-      case 4:
         return (
           <Card className="border-0 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
@@ -742,7 +782,7 @@ const EventsCreate = () => {
             })}
           </div>
           
-          <Progress value={(currentStep / 4) * 100} className="h-2" />
+          <Progress value={(currentStep / 3) * 100} className="h-2" />
         </div>
 
         {/* Step Content */}
@@ -761,7 +801,7 @@ const EventsCreate = () => {
             Previous
           </Button>
 
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <Button
               type="button"
               onClick={nextStep}
@@ -773,13 +813,18 @@ const EventsCreate = () => {
           ) : (
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || eventCreated}
               className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               {submitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Creating Event...
+                </>
+              ) : eventCreated ? (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Event Created
                 </>
               ) : (
                 <>
@@ -814,6 +859,7 @@ const EventsCreate = () => {
               
               <div className="mt-6 flex justify-end gap-4">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => navigate('/events')}
                   className="flex items-center gap-2"
@@ -821,6 +867,7 @@ const EventsCreate = () => {
                   Skip for Now
                 </Button>
                 <Button
+                  type="button"
                   onClick={() => navigate('/events')}
                   className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                 >

@@ -133,7 +133,7 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
     if (layout?.venueType === 'simple_counter') {
       const totalPrice = simpleCounterQuantity * simpleCounterPrice;
       onSeatsSelected([{
-        seatId: 0,
+        seatId: 0, // Simple counter uses 0 as seatId
         seatNumber: 'SIMPLE',
         categoryName: 'General',
         price: simpleCounterPrice,

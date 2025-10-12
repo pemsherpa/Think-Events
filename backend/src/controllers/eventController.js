@@ -1,4 +1,40 @@
 import { query } from '../config/database.js';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Configure multer for event image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/events';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `event-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
 
 // Get all events with filters
 export const getEvents = async (req, res) => {
@@ -10,14 +46,14 @@ export const getEvents = async (req, res) => {
       maxPrice, 
       date, 
       page = 1, 
-      limit = 8,
+      limit = 20,
       sortBy = 'start_date',
       sortOrder = 'ASC'
     } = req.query;
 
-    let whereConditions = ['e.status = $1'];
-    let queryParams = ['upcoming'];
-    let paramIndex = 2;
+    let whereConditions = ['e.status IN ($1, $2)'];
+    let queryParams = ['upcoming', 'published'];
+    let paramIndex = 3;
 
     // Category filter
     if (category) {
@@ -571,5 +607,43 @@ export const getMyEvents = async (req, res) => {
   } catch (error) {
     console.error('Get my events error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+// Upload event image
+export const uploadEventImage = async (req, res) => {
+  try {
+    upload.single('eventImage')(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+
+      // Generate image URL
+      const imageUrl = `${process.env.BASE_URL || 'http://localhost:5001'}/uploads/events/${req.file.filename}`;
+
+      res.json({
+        success: true,
+        message: 'Event image uploaded successfully',
+        data: {
+          image_url: imageUrl
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Upload event image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
 };

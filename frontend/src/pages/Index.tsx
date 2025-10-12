@@ -63,7 +63,7 @@ const Index = () => {
           queryParams.sortOrder = 'DESC';
       }
       
-      const response = await eventsAPI.getAll({ ...queryParams, limit: 6 });
+      const response = await eventsAPI.getAll({ ...queryParams, limit: 12 });
       setEvents(response.data.events || []);
       setError(null);
     } catch (err) {

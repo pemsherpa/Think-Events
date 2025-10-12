@@ -184,7 +184,10 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
       console.log('Layout creation response:', response);
       
       if (response.success) {
+        console.log('✅ Seat layout created successfully:', response.data);
         onLayoutCreated?.(response.data);
+        // Show success message
+        alert('Seat layout created successfully! Your custom layout is now active.');
       } else {
         setError(response.message || 'Failed to create seat layout');
       }
@@ -293,7 +296,7 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={() => {
+                <Button type="button" size="sm" variant="outline" onClick={() => {
                   if (selectedCategory) {
                     updateSeatsByColumn(1, { categoryId: selectedCategory, price: selectedPrice });
                   }
@@ -306,6 +309,7 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Apply to All</Label>
               <Button 
+                type="button"
                 size="sm" 
                 variant="outline" 
                 className="w-full"
@@ -540,7 +544,7 @@ const SeatLayoutCreator: React.FC<SeatLayoutCreatorProps> = ({
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 pt-6 border-t">
-            <Button variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={loading}>

@@ -49,7 +49,7 @@ const HeroSection = () => {
   const fetchFeaturedEvents = async () => {
     try {
       setLoading(true);
-      const data = await eventsAPI.getAll({ featured: 'true', limit: 5 });
+      const data = await eventsAPI.getAll({ limit: 8 });
       const list = data.data || data.events || [];
       if (Array.isArray(list)) setEvents(list);
     } catch (err) {
