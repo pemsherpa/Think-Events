@@ -18,6 +18,8 @@ const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState('');
   const navigate = useNavigate();
   const { signup } = useAuth();
 
@@ -35,7 +37,17 @@ const Signup: React.FC = () => {
         last_name: lastName,
         phone
       });
-      navigate('/');
+
+      if (response && (response.requiresVerification || response.requiresOTP)) {
+        setUserId(response.userId);
+        setShowOTPVerification(true);
+        toast({
+          title: "Verification Required",
+          description: "Please check your email for the OTP code.",
+        });
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.message || 'Signup failed. Please try again.');
     } finally {
@@ -43,9 +55,79 @@ const Signup: React.FC = () => {
     }
   };
 
-  // OTP flow temporarily disabled
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !otpCode) return;
+    
+    setLoading(true);
+    try {
+      // We need to call the verify endpoint directly or via auth context
+      // Assuming authAPI is available or we add verifyOTP to AuthContext
+      // For now, let's use fetch directly or assume a verify function exists
+      // But wait, we should probably add verifyOTP to AuthContext. 
+      // Let's assume we will add it.
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/verify-signup-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, otpCode })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Account verified successfully!",
+        });
+        // Login the user or redirect to login
+        // If the backend returns a token, we can store it
+        if (data.token) {
+           localStorage.setItem('auth_token', data.token);
+           localStorage.setItem('user', JSON.stringify(data.user));
+           window.location.href = '/'; // Force reload to update context
+        } else {
+           navigate('/login');
+        }
+      } else {
+        setError(data.message || 'Verification failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleResendOTP = async () => {};
+  const handleResendOTP = async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/resend-signup-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "OTP Resent",
+          description: "Please check your email for the new code.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.message || "Failed to resend OTP",
+        });
+      }
+    } catch (error) {
+       toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to resend OTP",
+        });
+    }
+  };
 
   if (showOTPVerification) {
     return (
@@ -58,15 +140,20 @@ const Signup: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={(e)=>e.preventDefault()} className="space-y-4">
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-600 text-sm font-medium">{error}</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   OTP Code
                 </label>
                 <Input
                   type="text"
-                  value={''}
-                  onChange={() => {}}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
                   placeholder="Enter 6-digit code"
                   className="w-full text-center text-lg tracking-widest"
                   maxLength={6}
@@ -75,22 +162,21 @@ const Signup: React.FC = () => {
               </div>
               
               <Button 
-                type="button" 
+                type="submit" 
                 className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
-                disabled
+                disabled={loading || otpCode.length !== 6}
               >
-                Verify & Complete Signup
+                {loading ? 'Verifying...' : 'Verify & Complete Signup'}
               </Button>
 
               <div className="text-center">
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={()=>{}}
-                  disabled
+                  onClick={handleResendOTP}
                   className="text-purple-600 hover:text-purple-700"
                 >
-                  Resend OTP (disabled)
+                  Resend OTP
                 </Button>
               </div>
 

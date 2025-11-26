@@ -1,4 +1,6 @@
 import { query } from '../config/database.js';
+import { sendTicketEmail } from '../utils/emailService.js';
+import { generateTicketPDF } from '../utils/pdfGenerator.js';
 
 // Get all seat categories
 export const getSeatCategories = async (req, res) => {
@@ -578,6 +580,60 @@ export const bookSeats = async (req, res) => {
         },
         message: 'Seats booked successfully'
       });
+
+      // Fetch full event and venue details for the ticket
+      const eventDetailsResult = await query(`
+        SELECT 
+          e.title as event_title, e.start_date, e.start_time,
+          v.name as venue_name, v.city as venue_city,
+          u.email as user_email, u.first_name as user_first_name, u.last_name as user_last_name
+        FROM events e
+        LEFT JOIN venues v ON e.venue_id = v.id
+        JOIN users u ON u.id = $1
+        WHERE e.id = $2
+      `, [userId, eventId]);
+
+      if (eventDetailsResult.rows.length > 0) {
+        const eventDetails = eventDetailsResult.rows[0];
+        
+        // Generate Ticket PDF
+        try {
+          const pdfBuffer = await generateTicketPDF({
+            id: booking.id,
+            event_id: eventId,
+            user_id: userId,
+            event_title: eventDetails.event_title,
+            start_date: eventDetails.start_date,
+            start_time: eventDetails.start_time,
+            venue_name: eventDetails.venue_name || 'TBA',
+            venue_city: eventDetails.venue_city || '',
+            user_name: `${eventDetails.user_first_name} ${eventDetails.user_last_name}`,
+            seat_numbers: seatBookings.map(sb => sb.seatNumber),
+            quantity: seatBookings.reduce((sum, sb) => sum + sb.quantity, 0),
+            total_amount: totalAmount,
+            currency: 'NPR'
+          });
+
+          // Send confirmation email with PDF
+          await sendTicketEmail(eventDetails.user_email, {
+            event_title: eventDetails.event_title,
+            user_name: `${eventDetails.user_first_name} ${eventDetails.user_last_name}`,
+            start_date: eventDetails.start_date,
+            start_time: eventDetails.start_time,
+            venue_name: eventDetails.venue_name || 'TBA',
+            venue_city: eventDetails.venue_city || '',
+            seat_numbers: seatBookings.map(sb => sb.seatNumber),
+            quantity: seatBookings.reduce((sum, sb) => sum + sb.quantity, 0),
+            total_amount: totalAmount,
+            currency: 'NPR'
+          }, pdfBuffer);
+          
+          console.log(`Ticket email sent to ${eventDetails.user_email}`);
+        } catch (emailError) {
+          console.error('Failed to send ticket email:', emailError);
+          // Don't fail the request if email fails, just log it
+        }
+      }
       
     } catch (error) {
       await query('ROLLBACK');
@@ -586,6 +642,14 @@ export const bookSeats = async (req, res) => {
     
   } catch (error) {
     console.error('Book seats error:', error);
+    
+    if (error.message.includes('Not enough capacity')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to book seats'

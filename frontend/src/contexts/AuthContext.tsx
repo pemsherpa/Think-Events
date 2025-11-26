@@ -25,7 +25,7 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   loginWithGoogle: (token: string, user: User) => Promise<void>;
-  signup: (userData: any) => Promise<void>;
+  signup: (userData: any) => Promise<any>;
   logout: () => void;
   updateProfile: (profileData: any) => Promise<void>;
 }

@@ -1,4 +1,6 @@
 import { query } from '../config/database.js';
+import { sendTicketEmail } from '../utils/emailService.js';
+import { generateTicketPDF } from '../utils/pdfGenerator.js';
 
 // Create a new booking
 export const createBooking = async (req, res) => {
@@ -271,11 +273,46 @@ export const updateBookingStatus = async (req, res) => {
     `;
 
     const updatedBooking = await query(updateQuery, values);
+    const bookingData = updatedBooking.rows[0];
+
+    // If booking is confirmed, send ticket email
+    if (bookingData.status === 'confirmed') {
+      try {
+        // Fetch full event and user details for the email
+        const detailsQuery = `
+          SELECT 
+            b.*,
+            e.title as event_title, e.description as event_description,
+            e.start_date, e.start_time, e.end_time, e.images as event_images,
+            v.name as venue_name, v.address as venue_address, v.city as venue_city,
+            c.name as category_name,
+            u.email as user_email, u.first_name as user_first_name, u.last_name as user_last_name
+          FROM bookings b
+          JOIN events e ON b.event_id = e.id
+          LEFT JOIN venues v ON e.venue_id = v.id
+          LEFT JOIN categories c ON e.category_id = c.id
+          JOIN users u ON b.user_id = u.id
+          WHERE b.id = $1
+        `;
+        const detailsResult = await query(detailsQuery, [id]);
+        
+        if (detailsResult.rows.length > 0) {
+          const ticketDetails = detailsResult.rows[0];
+          const qrCode = await generateTicketQR(ticketDetails);
+          
+          await sendTicketEmail(ticketDetails.user_email, ticketDetails, qrCode);
+          console.log(`Ticket email sent to ${ticketDetails.user_email}`);
+        }
+      } catch (emailError) {
+        console.error('Failed to send ticket email:', emailError);
+        // Don't fail the request, just log the error
+      }
+    }
 
     res.json({
       success: true,
       message: 'Booking updated successfully',
-      data: updatedBooking.rows[0]
+      data: bookingData
     });
 
   } catch (error) {

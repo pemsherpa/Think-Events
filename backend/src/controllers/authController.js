@@ -7,6 +7,12 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { validatePhoneNumber } from '../utils/twilio.js';
+import { sendOtpEmail } from '../utils/emailService.js';
+
+// Helper to generate numeric OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const googleClient = new OAuth2Client(config.googleClientId);
 
@@ -85,24 +91,34 @@ export const signup = async (req, res) => {
     const saltRounds = config.bcryptRounds;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Create user without OTP (temporarily disabled phone verification)
+    // Generate OTP
+    const otpCode = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Create user with OTP and is_verified = false
     const newUser = await query(
-      `INSERT INTO users (username, email, password_hash, first_name, last_name, phone, is_verified) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+      `INSERT INTO users (username, email, password_hash, first_name, last_name, phone, is_verified, otp_code, otp_expires) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
        RETURNING id, username, email, first_name, last_name, phone, is_organizer, is_verified`,
-      [username, email, passwordHash, first_name, last_name, formattedPhone, true]
+      [username, email, passwordHash, first_name, last_name, formattedPhone, false, otpCode, otpExpires]
     );
 
     const user = newUser.rows[0];
 
-    // Generate token and return immediately (no OTP flow)
-    const token = generateToken(user.id);
+    // Send OTP via Email
+    const emailResult = await sendOtpEmail(email, otpCode);
+
+    if (!emailResult.success) {
+      // If email fails, log the OTP to console for development/fallback
+      console.error('Failed to send signup OTP email. FALLBACK OTP:', otpCode);
+      console.error('Error details:', emailResult.error);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      token,
-      user
+      message: 'User created successfully. Please check your email for the verification code.',
+      userId: user.id,
+      requiresVerification: true
     });
 
   } catch (error) {
@@ -142,12 +158,17 @@ export const verifySignupOTP = async (req, res) => {
     const userData = user.rows[0];
 
     // Verify OTP
-    const otpVerification = verifyOTP(userData.otp_code, userData.otp_expires, otpCode);
-    
-    if (!otpVerification.valid) {
+    if (userData.otp_code !== otpCode) {
       return res.status(400).json({
         success: false,
-        message: otpVerification.message
+        message: 'Invalid OTP code'
+      });
+    }
+
+    if (new Date(userData.otp_expires) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired'
       });
     }
 
@@ -162,7 +183,7 @@ export const verifySignupOTP = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Phone number verified successfully!',
+      message: 'Email verified successfully!',
       token,
       user: {
         id: userData.id,
@@ -200,7 +221,7 @@ export const resendSignupOTP = async (req, res) => {
 
     // Get user details
     const user = await query(
-      'SELECT id, phone, is_verified FROM users WHERE id = $1',
+      'SELECT id, email, is_verified FROM users WHERE id = $1',
       [userId]
     );
 
@@ -230,19 +251,21 @@ export const resendSignupOTP = async (req, res) => {
       [otpCode, otpExpires, userId]
     );
 
-    // Send new OTP
-    const smsResult = await sendOTP(userData.phone, otpCode);
+    // Send new OTP via Email
+    const emailResult = await sendOtpEmail(userData.email, otpCode);
     
-    if (!smsResult.success) {
+    if (!emailResult.success) {
+      console.error('Failed to send OTP email. FALLBACK OTP:', otpCode);
+      // Still return error to frontend but log OTP for dev
       return res.status(500).json({
         success: false,
-        message: 'Failed to send OTP. Please try again.'
+        message: 'Failed to send OTP email. Check server logs for code.'
       });
     }
 
     res.json({
       success: true,
-      message: 'New OTP sent successfully to your phone number.'
+      message: 'New OTP sent successfully to your email.'
     });
 
   } catch (error) {

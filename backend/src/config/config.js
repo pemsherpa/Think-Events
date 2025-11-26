@@ -29,9 +29,8 @@ export default {
   ].filter(Boolean),
   
   // Email configuration
-  smtp: {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+  email: {
+    service: 'gmail',
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
