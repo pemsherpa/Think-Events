@@ -290,45 +290,9 @@ export const updateBookingStatus = async (req, res) => {
 // Cancel booking
 export const cancelBooking = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user_id = req.user.id;
-
-    // Check if booking exists and belongs to user
-    const bookingCheck = await query(
-      'SELECT id, event_id, quantity, status FROM bookings WHERE id = $1 AND user_id = $2',
-      [id, user_id]
-    );
-
-    if (bookingCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found'
-      });
-    }
-
-    const booking = bookingCheck.rows[0];
-
-    if (booking.status === 'cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Booking is already cancelled'
-      });
-    }
-
-    // Cancel booking and restore seats
-    await query(
-      'UPDATE bookings SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      ['cancelled', id]
-    );
-
-    await query(
-      'UPDATE events SET available_seats = available_seats + $1 WHERE id = $2',
-      [booking.quantity, booking.event_id]
-    );
-
-    res.json({
-      success: true,
-      message: 'Booking cancelled successfully'
+    return res.status(403).json({
+      success: false,
+      message: 'Customer-initiated booking cancellation is disabled'
     });
 
   } catch (error) {

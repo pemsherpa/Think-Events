@@ -1,4 +1,3 @@
-import ExcelSyncService from '../../scripts/excel-sync-service.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,11 +7,18 @@ const __dirname = path.dirname(__filename);
 // Global sync service instance
 let syncService = null;
 
-// Initialize sync service
-export const initializeSyncService = (excelFilePath) => {
+// Initialize sync service (lazy-load to avoid hard dependency at server boot)
+export const initializeSyncService = async (excelFilePath) => {
   if (!syncService) {
-    syncService = new ExcelSyncService(excelFilePath);
-    console.log('✅ Excel sync service initialized');
+    try {
+      const module = await import('../../scripts/excel-sync-service.js');
+      const ExcelSyncService = module.default;
+      syncService = new ExcelSyncService(excelFilePath);
+      console.log('✅ Excel sync service initialized');
+    } catch (err) {
+      console.error('Excel sync service unavailable:', err?.message || err);
+      throw err;
+    }
   }
   return syncService;
 };

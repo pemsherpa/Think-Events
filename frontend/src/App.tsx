@@ -30,7 +30,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
 const queryClient = new QueryClient();
-const GOOGLE_CLIENT_ID = "715592021110-v6q8btevo8b3b4b6gou6lu58qb0bss02.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "715592021110-v6q8btevo8b3b4b6gou6lu58qb0bss02.apps.googleusercontent.com";
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);

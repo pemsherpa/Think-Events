@@ -31,23 +31,15 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({
 
   const handleSuccess = async (credentialResponse: any) => {
     try {
-      if (credentialResponse.credential) {
-        const decoded: GoogleUser = jwtDecode(credentialResponse.credential);
-        
-        // Call the backend to authenticate with Google
+      const idToken = credentialResponse?.credential;
+      if (idToken) {
+        // Optional: decode for any UI usage, not required for backend
+        // const decoded: GoogleUser = jwtDecode(idToken);
+        // Call the backend with the Google ID token
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/google`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            googleId: decoded.sub,
-            email: decoded.email,
-            firstName: decoded.given_name,
-            lastName: decoded.family_name,
-            picture: decoded.picture,
-            emailVerified: decoded.email_verified
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
         });
 
         const data = await response.json();
@@ -58,10 +50,17 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({
           navigate('/');
         } else {
           console.error('Google authentication failed:', data.message);
+          // You might want to add a toast here if you have a toast hook available in this component
+          // For now, we'll just log it, but in a real app, show it to the user.
+          // Since I can't easily add the hook without changing imports and potentially breaking things if the hook isn't set up right,
+          // I will leave it as console error but with more detail.
+          // Actually, let's try to alert the user at least.
+          alert(`Google Login Failed: ${data.message}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing Google authentication:', error);
+      alert('An error occurred during Google login. Please try again.');
     }
   };
 

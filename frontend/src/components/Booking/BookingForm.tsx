@@ -22,7 +22,7 @@ interface FormData {
 }
 
 export interface BookingFormRef {
-  triggerValidation: () => void;
+  triggerValidation: () => boolean;
 }
 
 const BookingForm = forwardRef<BookingFormRef, BookingFormProps>(({ onFormChange }, ref) => {
@@ -106,7 +106,7 @@ const BookingForm = forwardRef<BookingFormRef, BookingFormProps>(({ onFormChange
   // Function to trigger validation display
   const triggerValidation = () => {
     setShowErrors(true);
-    validateForm();
+    return validateForm();
   };
 
   // Expose triggerValidation to parent component

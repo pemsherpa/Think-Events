@@ -101,14 +101,12 @@ const BookingPage = () => {
   };
 
   const handleContinueToPayment = () => {
-    // Trigger validation in the booking form
     if (bookingFormRef.current) {
-      bookingFormRef.current.triggerValidation();
-    }
-    
-    // Check if form is valid after validation
-    if (isFormValid) {
-      setActiveTab('payment');
+      const validNow = bookingFormRef.current.triggerValidation();
+      if (validNow) {
+        setActiveTab('payment');
+        return;
+      }
     }
   };
 

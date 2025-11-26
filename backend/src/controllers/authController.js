@@ -314,9 +314,11 @@ export const login = async (req, res) => {
 // Google OAuth login/signup
 export const googleAuth = async (req, res) => {
   try {
+    console.log('Google Auth Request Received');
     const { idToken } = req.body;
 
     if (!idToken) {
+      console.log('No ID token provided');
       return res.status(400).json({
         success: false,
         message: 'Google ID token required'
@@ -324,6 +326,7 @@ export const googleAuth = async (req, res) => {
     }
 
     // Verify Google token
+    console.log('Verifying Google token...');
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience: config.googleClientId
@@ -331,6 +334,7 @@ export const googleAuth = async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, given_name, family_name, picture } = payload;
+    console.log('Token verified. User:', email, googleId);
 
     // Check if user exists with Google ID
     let user = await query(
@@ -339,6 +343,7 @@ export const googleAuth = async (req, res) => {
     );
 
     if (user.rows.length === 0) {
+      console.log('User not found by Google ID. Checking by email...');
       // Check if user exists with email
       user = await query(
         'SELECT id, username, email, first_name, last_name, phone, is_organizer, is_verified FROM users WHERE email = $1',
@@ -346,24 +351,36 @@ export const googleAuth = async (req, res) => {
       );
 
       if (user.rows.length === 0) {
+        console.log('User not found by email. Creating new user...');
         // Create new user
         const username = email.split('@')[0] + '_' + Math.random().toString(36).substr(2, 5);
         
-        const newUser = await query(
-          `INSERT INTO users (username, email, first_name, last_name, avatar_url, google_id, is_verified) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7) 
-           RETURNING id, username, email, first_name, last_name, phone, is_organizer, is_verified`,
-          [username, email, given_name, family_name, picture, googleId, true]
-        );
-
-        user = newUser;
+        try {
+          const newUser = await query(
+            `INSERT INTO users (username, email, first_name, last_name, avatar_url, google_id, is_verified) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7) 
+             RETURNING id, username, email, first_name, last_name, phone, is_organizer, is_verified`,
+            [username, email, given_name, family_name, picture, googleId, true]
+          );
+          user = newUser;
+          console.log('New user created:', user.rows[0].id);
+        } catch (createError) {
+          console.error('Error creating user:', createError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to create user: ' + createError.message
+          });
+        }
       } else {
+        console.log('User found by email. Updating Google ID...');
         // Update existing user with Google ID
         await query(
           'UPDATE users SET google_id = $1, avatar_url = $2, is_verified = $3 WHERE email = $4',
           [googleId, picture, true, email]
         );
       }
+    } else {
+      console.log('User found by Google ID.');
     }
 
     const userData = user.rows[0];
@@ -389,7 +406,7 @@ export const googleAuth = async (req, res) => {
     console.error('Google auth error:', error);
     res.status(500).json({
       success: false,
-      message: 'Google authentication failed'
+      message: 'Google authentication failed: ' + error.message
     });
   }
 };

@@ -104,13 +104,8 @@ const MyBookings = () => {
     }
   };
 
-  const handleCancel = async (bookingId: number) => {
-    try {
-      await bookingsAPI.cancel(bookingId);
-      await fetchBookings();
-    } catch (e) {
-      console.error(e);
-    }
+  const handleCancel = async (_bookingId: number) => {
+    // Disabled by business rules
   };
 
   const handleCompletePayment = async (bookingId: number) => {
@@ -129,6 +124,15 @@ const MyBookings = () => {
     const eventDate = formatDate(booking.event_date);
     const eventTime = formatTime(booking.event_time);
     const total = booking.total_amount;
+    const qrPayload = encodeURIComponent(JSON.stringify({
+      bookingId: booking.id,
+      eventId: booking.event_id,
+      title: booking.event_title,
+      seats: booking.seats,
+      date: booking.event_date,
+      time: booking.event_time
+    }));
+    const qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl=${qrPayload}&chld=L|0`;
 
     const ticketHtml = `
 <!doctype html>
@@ -196,7 +200,16 @@ const MyBookings = () => {
               <div class="value">रु ${Number(total).toLocaleString()}</div>
             </div>
           </div>
-          <div class="barcode"></div>
+          <div style="margin-top:18px; display:flex; align-items:center; gap:16px;">
+            <div>
+              <div class="label">Ticket QR</div>
+              <img src="${qrUrl}" alt="Ticket QR" width="140" height="140" style="border:1px solid #e5e7eb;border-radius:8px;padding:6px;background:#fff" />
+            </div>
+            <div style="flex:1">
+              <div class="barcode"></div>
+              <div class="footer">Scan QR at entry for validation. Keep this ticket handy.</div>
+            </div>
+          </div>
           <div class="footer">Please bring a valid ID. This ticket is non-transferable. Powered by Think Event.</div>
         </div>
       </div>
@@ -407,11 +420,7 @@ const MyBookings = () => {
                           Download Ticket
                         </Button>
                       )}
-                      {booking.status !== 'cancelled' && !isEventExpired(booking) && (
-                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleCancel(booking.id)}>
-                          Cancel Booking
-                        </Button>
-                      )}
+                      {/* Cancellation disabled by business rule */}
                       {isEventExpired(booking) && (
                         <Button size="sm" variant="outline" disabled className="text-gray-500">
                           Event Expired

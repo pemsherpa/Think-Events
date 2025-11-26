@@ -35,8 +35,8 @@ router.put('/:id/status', [
   handleValidationErrors
 ], bookingController.updateBookingStatus);
 
-// Cancel booking
-router.delete('/:id', bookingController.cancelBooking);
+// Cancel booking (disabled for customers)
+// router.delete('/:id', bookingController.cancelBooking);
 
 // Get booking statistics
 router.get('/stats/summary', bookingController.getBookingStats);

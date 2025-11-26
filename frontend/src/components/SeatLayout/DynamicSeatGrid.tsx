@@ -4,7 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { seatLayoutAPI } from '@/services/api';
 import { Plus, Minus, ShoppingCart, AlertCircle } from 'lucide-react';
-import { APP_CONFIG, getSeatCategoryConfig, formatCurrency } from '@/config/appConfig';
+import { formatCurrency } from '@/config/appConfig';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface SeatCategory {
   id: number;
@@ -22,7 +29,7 @@ interface Seat {
   price: number;
   maxCapacity: number;
   currentBookings: number;
-  seatType: 'standard' | 'aisle' | 'disabled';
+  seatType: 'standard' | 'aisle' | 'disabled' | 'dance_floor';
   isAvailable: boolean;
   categoryName: string;
   categoryColor: string;
@@ -33,6 +40,7 @@ interface SeatLayout {
   venueType: 'theater' | 'open_ground' | 'simple_counter';
   bookingType: 'one_time' | 'multiple';
   maxBookingsPerSeat: number;
+  layoutConfig?: any;
 }
 
 interface SelectedSeat {
@@ -66,6 +74,11 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
   const [simpleCounterQuantity, setSimpleCounterQuantity] = useState(0);
   const [simpleCounterPrice, setSimpleCounterPrice] = useState(0);
 
+  // Dance Floor state
+  const [showDanceFloorCounter, setShowDanceFloorCounter] = useState(false);
+  const [danceFloorQuantity, setDanceFloorQuantity] = useState(0);
+  const [danceFloorSeat, setDanceFloorSeat] = useState<Seat | null>(null);
+
   useEffect(() => {
     fetchSeatLayout();
   }, [eventId]);
@@ -90,7 +103,8 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
           id: response.data.layout.id,
           venueType: response.data.layout.venue_type,
           bookingType: response.data.layout.booking_type,
-          maxBookingsPerSeat: response.data.layout.max_bookings_per_seat
+          maxBookingsPerSeat: response.data.layout.max_bookings_per_seat,
+          layoutConfig: response.data.layout.layout_config
         };
         setLayout(layoutData);
         
@@ -112,9 +126,12 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
         
         setSeats(mappedSeats);
         setCategories(response.data.categories || []);
-        console.log('Layout loaded:', response.data.layout);
-        console.log('Seats loaded:', mappedSeats.length);
-        console.log('Mapped seats:', mappedSeats);
+        
+        // Set simple counter price if applicable
+        if (layoutData.venueType === 'simple_counter' && response.data.event) {
+             setSimpleCounterPrice(parseFloat(response.data.event.price) || 0);
+        }
+
       } else {
         console.log('No layout found for event:', eventId);
         setLayout(null);
@@ -154,6 +171,14 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
       return;
     }
 
+    if (seat.categoryName === 'Dance Floor') {
+      setDanceFloorSeat(seat);
+      const currentSelection = selectedSeats.get(seat.id);
+      setDanceFloorQuantity(currentSelection ? currentSelection.quantity : 0);
+      setShowDanceFloorCounter(true);
+      return;
+    }
+
     const currentSelection = selectedSeats.get(seat.id);
     const maxQuantity = layout?.bookingType === 'multiple' 
       ? seat.maxCapacity - seat.currentBookings 
@@ -176,6 +201,25 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
       };
       setSelectedSeats(new Map(selectedSeats).set(seat.id, newSelection));
     }
+  };
+
+  const handleDanceFloorConfirm = () => {
+    if (danceFloorSeat && danceFloorQuantity > 0) {
+      const newSelection: SelectedSeat = {
+        seatId: danceFloorSeat.id,
+        seatNumber: 'Dance Floor', // Display name
+        categoryName: danceFloorSeat.categoryName,
+        price: danceFloorSeat.price,
+        quantity: danceFloorQuantity,
+        maxQuantity: 8 // Max 8 as requested
+      };
+      setSelectedSeats(new Map(selectedSeats).set(danceFloorSeat.id, newSelection));
+    } else if (danceFloorSeat && danceFloorQuantity === 0) {
+      const newSelectedSeats = new Map(selectedSeats);
+      newSelectedSeats.delete(danceFloorSeat.id);
+      setSelectedSeats(newSelectedSeats);
+    }
+    setShowDanceFloorCounter(false);
   };
 
   const updateSeatQuantity = (seatId: number, newQuantity: number) => {
@@ -303,6 +347,275 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
     );
   };
 
+  const renderLODLayout = () => {
+    // Helper to find seat by number
+    const getSeat = (num: string) => seats.find(s => s.seatNumber === num);
+
+    // Helper to render a seat button
+    const renderSeat = (seatNumber: string, label?: string, className?: string) => {
+      const seat = getSeat(seatNumber);
+      
+      // Placeholder for missing seats to maintain layout structure
+      if (!seat) {
+        return <div className={`w-12 h-10 bg-gray-800/30 rounded-t-xl rounded-b-md border border-gray-700/30 ${className}`} />;
+      }
+
+      const isSelected = selectedSeats.has(seat.id);
+      const status = getSeatStatus(seat);
+
+      // Custom colors and glow effects based on section/price
+      let bgColor = '';
+      let borderColor = '';
+      let glowClass = '';
+      let textColor = 'text-black';
+      
+      if (seat.categoryName === 'VVIP') {
+        bgColor = 'bg-cyan-400';
+        borderColor = 'border-cyan-300';
+        glowClass = 'shadow-[0_0_10px_rgba(34,211,238,0.6)]';
+        textColor = 'text-black';
+      } else if (seat.categoryName === 'Wings') {
+        bgColor = 'bg-yellow-500';
+        borderColor = 'border-yellow-400';
+        glowClass = 'shadow-[0_0_10px_rgba(234,179,8,0.6)]';
+        textColor = 'text-black';
+      } else if (seat.categoryName === 'Standard') {
+        bgColor = 'bg-orange-500';
+        borderColor = 'border-orange-400';
+        glowClass = 'shadow-[0_0_10px_rgba(249,115,22,0.6)]';
+        textColor = 'text-black';
+      }
+
+      if (isSelected) {
+        bgColor = 'bg-purple-600';
+        borderColor = 'border-purple-400';
+        glowClass = 'shadow-[0_0_15px_rgba(147,51,234,0.8)] scale-110 z-10';
+        textColor = 'text-white';
+      } else if (status === 'unavailable') {
+        bgColor = 'bg-gray-700';
+        borderColor = 'border-gray-600';
+        glowClass = '';
+        textColor = 'text-gray-500';
+      }
+
+      return (
+        <div
+          key={seat.id}
+          className={`
+            w-12 h-10 
+            rounded-t-xl rounded-b-md 
+            flex items-center justify-center 
+            text-[10px] font-bold 
+            cursor-pointer transition-all duration-300
+            border-b-4 border-r-2 ${borderColor}
+            ${bgColor} ${textColor} ${glowClass}
+            hover:scale-110 hover:brightness-110
+            ${className}
+          `}
+          onClick={() => handleSeatClick(seat)}
+          title={`${seat.seatNumber} - ${formatCurrency(seat.price)}`}
+        >
+          {label || seat.seatNumber}
+        </div>
+      );
+    };
+
+    const danceFloorSeat = seats.find(s => s.categoryName === 'Dance Floor');
+    const isDFSelected = danceFloorSeat && selectedSeats.has(danceFloorSeat.id);
+
+    // Handle direct Dance Floor click (add 1 ticket)
+    const handleDanceFloorClick = () => {
+      if (!danceFloorSeat) return;
+      
+      const currentSelection = selectedSeats.get(danceFloorSeat.id);
+      const currentQuantity = currentSelection ? currentSelection.quantity : 0;
+      
+      if (currentQuantity < 8) {
+        const newQuantity = currentQuantity + 1;
+        const newSelection: SelectedSeat = {
+          seatId: danceFloorSeat.id,
+          seatNumber: 'Dance Floor',
+          categoryName: danceFloorSeat.categoryName,
+          price: danceFloorSeat.price,
+          quantity: newQuantity,
+          maxQuantity: 8
+        };
+        setSelectedSeats(new Map(selectedSeats).set(danceFloorSeat.id, newSelection));
+      }
+    };
+
+    return (
+      <div className="bg-[#0B1120] p-10 rounded-2xl min-w-[900px] overflow-x-auto shadow-2xl border border-gray-800">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 tracking-wider">LOD CLUB LAYOUT</h2>
+          <p className="text-gray-400 mt-2 font-light">Select your seats or join the Dance Floor</p>
+        </div>
+
+        {/* Main Stage */}
+        <div className="flex justify-center mb-16 perspective-1000">
+          <div className="w-3/4 h-32 bg-black border-t-4 border-cyan-500/50 flex items-center justify-center rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black opacity-90"></div>
+            <div className="absolute bottom-0 w-full h-1 bg-cyan-500 shadow-[0_0_20px_#06b6d4]"></div>
+            <span className="relative z-10 text-4xl font-black tracking-[0.5em] text-gray-200 group-hover:text-cyan-400 transition-colors duration-500">MAIN STAGE</span>
+            
+            {/* Stage Lights Effect */}
+            <div className="absolute top-0 left-1/4 w-20 h-40 bg-cyan-500/10 blur-3xl transform -rotate-12"></div>
+            <div className="absolute top-0 right-1/4 w-20 h-40 bg-purple-500/10 blur-3xl transform rotate-12"></div>
+          </div>
+        </div>
+
+        {/* Top Section: VVIP */}
+        <div className="flex justify-between px-16 mb-20">
+          {/* VVIP Left */}
+          <div className="flex gap-4 items-end">
+            <div className="flex flex-col items-center gap-2">
+              <div className="border-l-2 border-t-2 border-cyan-500/30 w-6 h-6 rounded-tl-lg"></div>
+              {renderSeat('A14')}
+              <div className="border-l-2 border-b-2 border-cyan-500/30 w-6 h-6 rounded-bl-lg"></div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+               <div className="border-t-2 border-cyan-500/30 w-full h-6"></div>
+               {renderSeat('A15')}
+               <div className="border-b-2 border-cyan-500/30 w-full h-6"></div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="border-r-2 border-t-2 border-cyan-500/30 w-6 h-6 rounded-tr-lg"></div>
+              {renderSeat('A16')}
+              <div className="border-r-2 border-b-2 border-cyan-500/30 w-6 h-6 rounded-br-lg"></div>
+            </div>
+            <div className="text-cyan-400 font-black text-xl tracking-widest ml-4 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]">VVIP</div>
+          </div>
+
+          {/* VVIP Right */}
+          <div className="flex gap-4 items-end">
+             <div className="text-cyan-400 font-black text-xl tracking-widest mr-4 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]">VVIP</div>
+             <div className="flex flex-col items-center gap-2">
+              <div className="border-l-2 border-t-2 border-cyan-500/30 w-6 h-6 rounded-tl-lg"></div>
+              {renderSeat('B15')}
+              <div className="border-l-2 border-b-2 border-cyan-500/30 w-6 h-6 rounded-bl-lg"></div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="border-r-2 border-t-2 border-cyan-500/30 w-6 h-6 rounded-tr-lg"></div>
+              {renderSeat('B14')}
+              <div className="border-r-2 border-b-2 border-cyan-500/30 w-6 h-6 rounded-br-lg"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Section: Wings & Dance Floor */}
+        <div className="flex justify-between gap-12 mb-16">
+          {/* Left Wing (Bar A) */}
+          <div className="flex gap-6">
+            {/* Bar Label */}
+            <div className="w-16 bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-black flex flex-col items-center justify-center rounded-lg shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+              <span className="transform -rotate-90 whitespace-nowrap text-2xl tracking-[0.2em]">BAR A</span>
+            </div>
+
+            {/* Wing A Seats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Row X6 */}
+              {renderSeat('A-12', '12')} {renderSeat('A-5', '5')} {renderSeat('A-4', '4')}
+              {/* Row X5 */}
+              {renderSeat('A-11', '11')} {renderSeat('A-6', '6')} {renderSeat('A-3', '3')}
+              {/* Row X4 */}
+              {renderSeat('A-10', '10')} {renderSeat('A-7', '7')} {renderSeat('A-2', '2')}
+              {/* Row X3 */}
+              {renderSeat('A-9', '9')} {renderSeat('A-8', '8')} {renderSeat('A-1', '1')}
+              {/* Row X2 */}
+              {renderSeat('A-X2-1', 'X2')} {renderSeat('A-X2-2', 'X2')} <div className="w-12 h-10" />
+              {/* Row X1 */}
+              {renderSeat('A-X1-1', 'X1')} <div className="w-12 h-10" /> <div className="w-12 h-10" />
+            </div>
+          </div>
+
+          {/* Center: Dance Floor */}
+          <div className="flex-1 bg-[#fef9c3] rounded-xl relative min-h-[450px] flex flex-col items-center p-6 border-4 border-yellow-300 shadow-[0_0_30px_rgba(253,224,71,0.2)] overflow-hidden">
+             {/* Background Pattern */}
+             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-500 to-transparent"></div>
+             
+             <div className="absolute top-0 left-0 bg-purple-600 text-white px-4 py-1 text-xs font-bold rounded-br-lg shadow-md">RESTROOM</div>
+             <div className="absolute top-0 right-0 bg-red-600 text-white px-4 py-1 text-xs font-bold rounded-bl-lg shadow-md">EXIT</div>
+             
+             <h3 className="text-3xl font-black text-black mt-8 mb-2 tracking-widest">DANCE</h3>
+             <h3 className="text-3xl font-black text-black mb-16 tracking-widest">FLOOR</h3>
+
+             {/* Island Bar - Reduced Size */}
+             <div className="w-40 h-40 bg-black flex items-center justify-center mb-auto shadow-2xl border border-gray-800 transform rotate-45 rounded-lg">
+               <div className="text-center transform -rotate-45">
+                 <div className="text-white font-black text-xl tracking-wider">ISLAND</div>
+                 <div className="text-white font-black text-xl tracking-wider">BAR</div>
+               </div>
+             </div>
+
+             {/* Clickable Dance Floor Area */}
+             {danceFloorSeat && (
+               <div 
+                 className={`absolute inset-0 bg-yellow-400/0 hover:bg-yellow-400/10 cursor-pointer transition-all duration-300 flex items-center justify-center z-10 ${isDFSelected ? 'ring-4 ring-purple-600 ring-inset bg-yellow-400/10' : ''}`}
+                 onClick={handleDanceFloorClick}
+               >
+                 {isDFSelected && (
+                   <div className="bg-purple-600 text-white px-6 py-3 rounded-full font-bold shadow-2xl animate-bounce border-2 border-white">
+                     {selectedSeats.get(danceFloorSeat.id)?.quantity} Tickets Selected
+                   </div>
+                 )}
+               </div>
+             )}
+
+             {/* Section C Label */}
+             <div className="mt-auto mb-2 w-full border-t-2 border-black pt-2 text-center relative z-20">
+               <span className="font-bold text-black tracking-wider">SECTION 'C'</span>
+             </div>
+             
+             {/* Entry Label */}
+             <div className="absolute bottom-0 right-0 bg-green-600 text-white px-4 py-1 text-xs font-bold rounded-tl-lg shadow-md z-20">ENTRY</div>
+          </div>
+
+          {/* Right Wing (Bar B) */}
+          <div className="flex gap-6">
+            {/* Wing B Seats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Row Y6 */}
+              {renderSeat('B-4', '4')} {renderSeat('B-5', '5')} {renderSeat('B-12', '12')}
+              {/* Row Y5 */}
+              {renderSeat('B-3', '3')} {renderSeat('B-6', '6')} {renderSeat('B-11', '11')}
+              {/* Row Y4 */}
+              {renderSeat('B-2', '2')} {renderSeat('B-7', '7')} {renderSeat('B-10', '10')}
+              {/* Row Y3 */}
+              {renderSeat('B-1', '1')} {renderSeat('B-8', '8')} {renderSeat('B-9', '9')}
+              {/* Row Y2 */}
+              <div className="w-12 h-10" /> {renderSeat('B-Y2-1', 'Y2')} {renderSeat('B-Y2-2', 'Y2')}
+              {/* Row Y1 */}
+              <div className="w-12 h-10" /> <div className="w-12 h-10" /> {renderSeat('B-Y1-1', 'Y1')}
+            </div>
+
+            {/* Bar Label */}
+            <div className="w-16 bg-gradient-to-b from-yellow-400 to-yellow-600 text-black font-black flex flex-col items-center justify-center rounded-lg shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+              <span className="transform rotate-90 whitespace-nowrap text-2xl tracking-[0.2em]">BAR B</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section: C & D */}
+        <div className="flex flex-col items-center gap-6">
+          {/* Section C Seats */}
+          <div className="flex gap-4 justify-center bg-orange-500/10 p-4 rounded-xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+             {renderSeat('D6')} {renderSeat('D7')}
+             <div className="w-12" /> {/* Aisle */}
+             {renderSeat('D8')} {renderSeat('D9')}
+          </div>
+
+          {/* Section D Label */}
+          <div className="text-orange-500 font-black text-lg tracking-[0.2em] drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]">SECTION 'D'</div>
+
+          {/* Section D Seats */}
+          <div className="flex gap-4 justify-center bg-orange-500/10 p-4 rounded-xl border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+            {renderSeat('D5')} {renderSeat('D4')} {renderSeat('D3')} {renderSeat('D2')} {renderSeat('D1')}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSimpleCounter = () => {
     return (
       <div className="border rounded-lg p-6 bg-gray-50">
@@ -423,6 +736,15 @@ const DynamicSeatGrid: React.FC<DynamicSeatGridProps> = ({
         <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <p className="text-gray-600 mb-2">No seat layout configured</p>
         <p className="text-gray-500 text-sm">This event doesn't have a custom seat layout.</p>
+      </div>
+    );
+  }
+
+  if (layout.layoutConfig?.type === 'lod') {
+    return (
+      <div className="space-y-6">
+        {renderLODLayout()}
+        {renderSelectedSeats()}
       </div>
     );
   }
