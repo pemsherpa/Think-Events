@@ -17,6 +17,7 @@ interface User {
   preferences?: any;
   is_organizer: boolean;
   is_verified: boolean;
+  reward_points?: number;
 }
 
 interface AuthContextType {
@@ -28,6 +29,7 @@ interface AuthContextType {
   signup: (userData: any) => Promise<any>;
   logout: () => void;
   updateProfile: (profileData: any) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -153,6 +155,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signup,
     logout,
     updateProfile,
+    refreshUser: async () => {
+      try {
+        const response = await authAPI.getProfile();
+        if (response.success && response.data) {
+          setUser(response.data);
+          localStorage.setItem('user', JSON.stringify(response.data));
+        }
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
+    }
   };
 
   return (

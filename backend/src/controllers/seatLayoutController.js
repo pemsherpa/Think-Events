@@ -571,12 +571,23 @@ export const bookSeats = async (req, res) => {
       
       await query('COMMIT');
       
+      // Award Reward Points (100 points per ticket)
+      // totalQuantity is already calculated above
+      const points = totalQuantity * 100;
+      if (points > 0) {
+        await query(
+          'UPDATE users SET reward_points = COALESCE(reward_points, 0) + $1 WHERE id = $2',
+          [points, userId]
+        );
+      }
+
       res.status(201).json({
         success: true,
         data: {
           booking: booking,
           seatBookings: seatBookings,
-          totalAmount: totalAmount
+          totalAmount: totalAmount,
+          pointsAwarded: points
         },
         message: 'Seats booked successfully'
       });

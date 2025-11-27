@@ -253,6 +253,15 @@ export const updateBookingStatus = async (req, res) => {
       updateFields.push(`status = $${paramIndex}`);
       values.push('confirmed');
       paramIndex++;
+
+      // Award Reward Points (100 points per ticket)
+      const points = booking.quantity * 100;
+      if (points > 0) {
+        await query(
+          'UPDATE users SET reward_points = COALESCE(reward_points, 0) + $1 WHERE id = $2',
+          [points, user_id]
+        );
+      }
     }
 
     if (updateFields.length === 0) {

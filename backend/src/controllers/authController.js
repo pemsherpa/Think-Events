@@ -284,7 +284,7 @@ export const login = async (req, res) => {
 
     // Find user by username or email
     const user = await query(
-      'SELECT id, username, email, password_hash, first_name, last_name, phone, is_organizer, is_verified FROM users WHERE username = $1 OR email = $1',
+      'SELECT id, username, email, password_hash, first_name, last_name, phone, is_organizer, is_verified, reward_points FROM users WHERE username = $1 OR email = $1',
       [username]
     );
 

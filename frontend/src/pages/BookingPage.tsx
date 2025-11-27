@@ -40,7 +40,7 @@ const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getFinalPrice, activePromoCode } = usePromoCode();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('details');
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -392,6 +392,7 @@ const BookingPage = () => {
                         console.log('Seat booking response:', res);
                         
                         if (res.success) {
+                          await refreshUser(); // Refresh user data to update points
                           alert('Seats booked successfully! Your booking is confirmed.');
                           // Refresh the page to show updated seat availability
                           window.location.reload();

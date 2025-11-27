@@ -19,6 +19,7 @@ import ArtistDetail from "./pages/ArtistDetail";
 import BookArtist from "./pages/BookArtist";
 import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
+import Rewards from "./pages/Rewards";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/rewards" element={<Rewards />} />
                 <Route path="/contact" element={<Contact />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Menu, X, Calendar, MapPin, Users, Building } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { User, Menu, X, Calendar, MapPin, Users, Building, Award, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import HeaderCalendar from '@/components/Calendar/HeaderCalendar';
 
 const Header = () => {
+  const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -110,6 +112,20 @@ const Header = () => {
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-300"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+
             {/* Calendar Button */}
             <Button
               variant="ghost"
@@ -133,7 +149,10 @@ const Header = () => {
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
                       <User className="h-4 w-4 text-white" />
                     </div>
-                    <span className="hidden sm:inline font-medium">Profile</span>
+                    <div className="hidden sm:flex flex-col items-start">
+                      <span className="font-medium text-sm">Profile</span>
+                      <span className="text-xs text-purple-600 font-bold">{user.reward_points || 0} pts</span>
+                    </div>
                   </Button>
                   
                   {isProfileOpen && (
@@ -161,6 +180,16 @@ const Header = () => {
                       >
                         <Calendar className="h-4 w-4 mr-3" />
                         Create Event
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProfileNavigation('/rewards');
+                        }}
+                        className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 transition-colors"
+                      >
+                        <Award className="h-4 w-4 mr-3 text-yellow-500" />
+                        My Rewards
                       </button>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button
