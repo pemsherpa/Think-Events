@@ -13,6 +13,8 @@
     "migrate:otp": "node src/database/add_otp_fields.js",
     "migrate:complete": "node src/database/migrate_complete.js",
     "migrate:reset": "node src/database/add_reset_fields.js",
+    "migrate:payment": "node src/database/add_payment_fields.js",
+    "migrate:transactions": "node src/database/add_payment_transactions.js",
     "seed": "node src/database/seed.js",
     "seed:comprehensive": "node src/database/seed_comprehensive.js",
     "reset": "node src/database/reset.js",

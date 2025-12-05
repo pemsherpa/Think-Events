@@ -354,6 +354,7 @@ const BookingPage = () => {
                   <PaymentMethods 
                     totalAmount={Math.round(totalPrice * 1.18)}
                     eventId={id || ''}
+                    selectedSeats={selectedSeats}
                     onPaymentComplete={async () => {
                       try {
                         // Ensure user is authenticated

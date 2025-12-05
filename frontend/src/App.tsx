@@ -27,6 +27,8 @@ import Profile from "./pages/Profile";
 import EventsCreate from "./pages/EventsCreate";
 import EventsEdit from "./pages/EventsEdit";
 import Contact from "./pages/Contact";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailure from "./pages/PaymentFailure";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
@@ -78,6 +80,8 @@ const App = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/rewards" element={<Rewards />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/payment/esewa/success" element={<PaymentSuccess />} />
+                <Route path="/payment/esewa/failure" element={<PaymentFailure />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

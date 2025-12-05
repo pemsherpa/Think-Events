@@ -16,6 +16,7 @@ import bookingRoutes from './routes/bookings.js';
 import organizerRoutes from './routes/organizers.js';
 import excelRoutes from './routes/excel.js';
 import seatLayoutRoutes from './routes/seatLayout.js';
+import paymentRoutes from './payment/index.js';
 
 // Import Excel sync service
 import { initializeSyncService } from './controllers/excelController.js';
@@ -88,6 +89,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/organizers', organizerRoutes);
 app.use('/api/excel', excelRoutes);
 app.use('/api/seat-layout', seatLayoutRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
