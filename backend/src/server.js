@@ -1,14 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import config from './config/config.js';
+import logger from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import requestLogger from './middleware/requestLogger.js';
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/events.js';
 import bookingRoutes from './routes/bookings.js';
@@ -46,9 +47,7 @@ if (config.nodeEnv !== 'development') {
   app.use('/api/', limiter);
 }
 
-if (config.nodeEnv === 'development') {
-  app.use(morgan('dev'));
-}
+app.use(requestLogger);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -87,8 +86,6 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 const PORT = config.port;
-
-import logger from './utils/logger.js';
 
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
