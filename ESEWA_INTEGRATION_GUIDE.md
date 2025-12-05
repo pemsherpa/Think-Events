@@ -1,21 +1,8 @@
 # 🚀 eSewa Integration - Quick Start Guide
 
-## ✅ Status: Working & Production Ready
 
 This guide covers how to set up, test, and deploy the eSewa payment integration.
 
----
-
-## 🎯 What You Get
-
-- ✅ Secure payment processing with eSewa
-- ✅ Automatic booking confirmation
-- ✅ Seat management (hold/release)
-- ✅ Transaction logging for audit
-- ✅ Reward points integration
-- ✅ Email confirmations with tickets
-
----
 
 ## 📦 Installation
 
@@ -31,36 +18,6 @@ npm run migrate:payment
 npm run migrate:transactions
 ```
 
-### 2. Configure Environment
-
-**Backend `.env`:**
-```env
-# Server URLs
-BASE_URL=http://localhost:5001
-FRONTEND_URL=http://localhost:5173
-
-# eSewa Testing Credentials (UAT)
-ESEWA_PRODUCT_CODE=EPAYTEST
-ESEWA_SECRET_KEY=8gBm/:&EnhH.1/q
-ESEWA_PAYMENT_URL=https://rc-epay.esewa.com.np/api/epay/main/v2/form
-ESEWA_STATUS_URL=https://rc.esewa.com.np/api/epay/transaction/status/
-```
-
-**Frontend `.env`:**
-```env
-VITE_API_URL=http://localhost:5001
-```
-
-### 3. Start Servers
-
-```bash
-# Backend
-cd backend && npm run dev
-
-# Frontend (new terminal)
-cd frontend && npm run dev
-```
-
 ---
 
 ## 🧪 Testing
@@ -71,6 +28,7 @@ cd frontend && npm run dev
 - **ID**: 9806800001 (or 002, 003, 004, 005)
 - **Password**: Nepal@123
 - **MPIN**: 1122 (mobile app only)
+- **Verification Token**: 123456
 
 ### Test Payment Flow
 
@@ -101,31 +59,6 @@ LIMIT 1;
 -- payment_status = 'completed'
 ```
 
----
-
-## 🔒 Security Features
-
-### 1. HMAC Signature Verification
-- Verifies eSewa callback signatures
-- Prevents fake payment confirmations
-- Uses SHA256 algorithm
-
-### 2. Transaction Validation
-- Transaction UUID must match booking
-- Amount must match exactly
-- No bypasses or fallbacks
-
-### 3. eSewa API Verification
-- Calls eSewa API to verify payment
-- Only confirms if status = 'COMPLETE'
-- Has retry logic for reliability
-
-### 4. Amount Matching
-- eSewa amount = Booking amount
-- Detects tampering attempts
-- Rejects mismatched payments
-
----
 
 ## 🌐 Production Deployment
 
@@ -142,8 +75,6 @@ LIMIT 1;
 
 ```env
 NODE_ENV=production
-BASE_URL=https://api.your-domain.com
-FRONTEND_URL=https://your-domain.com
 
 ESEWA_PRODUCT_CODE=YOUR_PRODUCTION_CODE
 ESEWA_SECRET_KEY=YOUR_PRODUCTION_SECRET
@@ -179,37 +110,6 @@ npm run build
 
 ---
 
-## 🐛 Troubleshooting
-
-### Payment Verification Failed
-
-**Check:**
-1. Backend logs for "eSewa callback received"
-2. Database: `SELECT * FROM bookings WHERE id = X;`
-3. eSewa merchant dashboard for transaction
-
-**Common Causes:**
-- Invalid signature → Check secret key
-- Wrong transaction UUID → Check database
-- Network timeout → Check eSewa API connectivity
-
-### Seats Not Released
-
-**Fix:**
-```bash
-# Manually trigger failure handler
-curl "http://localhost:5001/api/payment/esewa/failure?booking_id=X"
-```
-
-### Amount Mismatch
-
-**Check:**
-```sql
-SELECT total_amount FROM bookings WHERE id = X;
--- Compare with eSewa transaction amount
-```
-
----
 
 ## 📊 Monitoring
 
@@ -229,15 +129,6 @@ ORDER BY created_at DESC
 LIMIT 20;
 ```
 
-### Success Metrics
-
-Monitor these:
-- Payment success rate (should be > 95%)
-- Average completion time
-- Failed payment reasons
-
----
-
 ## 🔗 Resources
 
 ### Documentation
@@ -248,33 +139,3 @@ Monitor these:
 ### Support
 - eSewa: +977-1-5970002
 - eSewa Email: support@esewa.com.np
-
----
-
-## ✨ Success Checklist
-
-Before going live:
-
-- [ ] Migrations run successfully
-- [ ] Test payment completed successfully
-- [ ] Success page displays correctly
-- [ ] Booking confirmed in database
-- [ ] Reward points awarded
-- [ ] Email confirmation sent
-- [ ] Production credentials obtained
-- [ ] SSL certificate active
-- [ ] First production payment tested
-- [ ] Monitoring set up
-
----
-
-**Your payment integration is production-ready!** 🎉
-
-For detailed technical information, see `/backend/src/payment/README.md`
-
----
-
-**Version**: 1.0.0  
-**Status**: ✅ Working  
-**Last Updated**: December 2025
-
