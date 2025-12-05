@@ -116,8 +116,8 @@ process.on('unhandledRejection', (reason) => {
 const gracefulShutdown = (signal) => {
   logger.info(`${signal} received, shutting down gracefully`);
   server.close(() => {
-    process.exit(0);
-  });
+  process.exit(0);
+});
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

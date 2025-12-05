@@ -35,13 +35,12 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
 const queryClient = new QueryClient();
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "715592021110-v6q8btevo8b3b4b6gou6lu58qb0bss02.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate initial loading time
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2500);
@@ -54,7 +53,7 @@ const App = () => {
   }
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ''}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <PromoCodeProvider>

@@ -1,9 +1,8 @@
 import React from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface GoogleUser {
   sub: string;
@@ -28,44 +27,57 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({
 }) => {
   const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSuccess = async (credentialResponse: any) => {
     try {
       const idToken = credentialResponse?.credential;
-      if (idToken) {
-        // Optional: decode for any UI usage, not required for backend
-        // const decoded: GoogleUser = jwtDecode(idToken);
-        // Call the backend with the Google ID token
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
+      if (!idToken) {
+        toast({
+          title: 'Authentication Error',
+          description: 'No token received from Google',
+          variant: 'destructive',
         });
+        return;
+      }
 
-        const data = await response.json();
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
 
-        if (data.success) {
-          // Login successful
-          await loginWithGoogle(data.token, data.user);
-          navigate('/');
-        } else {
-          console.error('Google authentication failed:', data.message);
-          // You might want to add a toast here if you have a toast hook available in this component
-          // For now, we'll just log it, but in a real app, show it to the user.
-          // Since I can't easily add the hook without changing imports and potentially breaking things if the hook isn't set up right,
-          // I will leave it as console error but with more detail.
-          // Actually, let's try to alert the user at least.
-          alert(`Google Login Failed: ${data.message}`);
-        }
+      const data = await response.json();
+
+      if (data.success) {
+        await loginWithGoogle(data.token, data.user);
+        toast({
+          title: 'Success',
+          description: 'Logged in with Google successfully',
+        });
+        navigate('/');
+      } else {
+        toast({
+          title: 'Authentication Failed',
+          description: data.message || 'Google login failed',
+          variant: 'destructive',
+        });
       }
     } catch (error: any) {
-      console.error('Error processing Google authentication:', error);
-      alert('An error occurred during Google login. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'An error occurred during Google login. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleError = () => {
-    console.error('Google authentication failed');
+    toast({
+      title: 'Authentication Failed',
+      description: 'Google authentication was cancelled or failed',
+      variant: 'destructive',
+    });
   };
 
   return (

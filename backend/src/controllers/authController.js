@@ -6,7 +6,7 @@ import config from '../config/config.js';
 import { validatePhoneNumber, generateOTP, sendOTP, verifyOTP } from '../utils/twilio.js';
 import { sendOtpEmail } from '../utils/emailService.js';
 import { avatarUpload } from '../utils/upload.js';
-import { asyncHandler } from '../middleware/errorHandler.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { OTP_EXPIRY_MINUTES, RESET_TOKEN_EXPIRY_HOURS } from '../utils/constants.js';
 import logger from '../utils/logger.js';
@@ -15,6 +15,22 @@ const googleClient = new OAuth2Client(config.googleClientId);
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+};
+
+const verifyGoogleToken = async (idToken) => {
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: config.googleClientId
+    });
+    return ticket;
+  } catch (error) {
+    logger.error('Google token verification failed:', error.message);
+    if (error.message?.includes('audience')) {
+      throw new AppError('Invalid Google client ID configuration', 400);
+    }
+    throw new AppError('Google token verification failed', 401);
+  }
 };
 
 const getOtpExpiry = () => new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
@@ -194,13 +210,22 @@ export const googleAuth = asyncHandler(async (req, res) => {
     return errorResponse(res, 'Google ID token required', 400);
   }
 
-  const ticket = await googleClient.verifyIdToken({
-    idToken,
-    audience: config.googleClientId
-  });
+  if (!config.googleClientId) {
+    logger.error('Google OAuth not configured: GOOGLE_CLIENT_ID missing');
+    throw new AppError('Google authentication is not configured', 500);
+  }
 
+  const ticket = await verifyGoogleToken(idToken);
   const payload = ticket.getPayload();
+  if (!payload) {
+    return errorResponse(res, 'Invalid Google token payload', 401);
+  }
+
   const { sub: googleId, email, given_name, family_name, picture } = payload;
+  
+  if (!email) {
+    return errorResponse(res, 'Email not provided by Google', 400);
+  }
 
   let user = await query(
     'SELECT id, username, email, first_name, last_name, phone, is_organizer, is_verified FROM users WHERE google_id = $1',
