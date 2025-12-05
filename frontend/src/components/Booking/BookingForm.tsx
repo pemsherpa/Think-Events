@@ -230,11 +230,11 @@ const BookingForm = forwardRef<BookingFormRef, BookingFormProps>(({ onFormChange
           />
           <Label htmlFor="agreeTerms" className="text-sm leading-relaxed">
             I agree to the{' '}
-            <a href="#" className="text-purple-600 hover:text-purple-700 underline">
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline">
               Terms and Conditions
             </a>{' '}
             and{' '}
-            <a href="#" className="text-purple-600 hover:text-purple-700 underline">
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 underline">
               Privacy Policy
             </a>
           </Label>

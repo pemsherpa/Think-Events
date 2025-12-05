@@ -31,6 +31,8 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailure from "./pages/PaymentFailure";
 import KhaltiSuccess from "./pages/KhaltiSuccess";
 import KhaltiFailure from "./pages/KhaltiFailure";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PromoCodeProvider } from "./contexts/PromoCodeContext";
 
@@ -81,6 +83,8 @@ const App = () => {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/rewards" element={<Rewards />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/terms" element={<TermsAndConditions />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/payment/esewa/success" element={<PaymentSuccess />} />
                 <Route path="/payment/esewa/failure" element={<PaymentFailure />} />
                 <Route path="/payment/khalti/success" element={<KhaltiSuccess />} />

@@ -17,8 +17,8 @@ const Footer = () => {
   const supportLinks = [
     { name: 'Help Center', href: '#' },
     { name: 'Contact Us', path: '/contact' },
-    { name: 'Terms of Service', href: '#' },
-    { name: 'Privacy Policy', href: '#' },
+    { name: 'Terms of Service', path: '/terms' },
+    { name: 'Privacy Policy', path: '/privacy' },
   ];
 
   const organizerLinks = [
@@ -193,8 +193,8 @@ const Footer = () => {
               Made with <Heart className="inline h-4 w-4 text-red-500 mx-1" /> in Nepal
             </p>
             <div className="flex space-x-6">
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <a href="/terms" onClick={(e) => { e.preventDefault(); navigate('/terms'); }} className="hover:text-white transition-colors">Terms</a>
+              <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate('/privacy'); }} className="hover:text-white transition-colors">Privacy</a>
               <a href="#" className="hover:text-white transition-colors">Cookies</a>
             </div>
           </div>
