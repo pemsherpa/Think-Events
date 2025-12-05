@@ -187,6 +187,27 @@ export const seatLayoutAPI = {
   }),
 };
 
+// Payment APIs
+export const paymentAPI = {
+  // Initiate eSewa payment
+  initiateEsewa: (paymentData) => apiRequest('/api/payment/esewa/initiate', {
+    method: 'POST',
+    body: JSON.stringify(paymentData),
+  }),
+  
+  // Verify eSewa payment
+  verifyEsewa: (queryParams) => {
+    const queryString = new URLSearchParams(queryParams).toString();
+    return apiRequest(`/api/payment/esewa/verify?${queryString}`);
+  },
+  
+  // Handle eSewa failure
+  handleEsewaFailure: (bookingId) => apiRequest(`/api/payment/esewa/failure?booking_id=${bookingId}`),
+  
+  // Check payment status
+  checkStatus: (bookingId) => apiRequest(`/api/payment/status/${bookingId}`),
+};
+
 // Health check
 export const healthCheck = () => apiRequest('/health');
 
@@ -194,5 +215,7 @@ export default {
   auth: authAPI,
   events: eventsAPI,
   bookings: bookingsAPI,
+  payment: paymentAPI,
+  seatLayout: seatLayoutAPI,
   health: healthCheck,
 };
