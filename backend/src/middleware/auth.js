@@ -2,87 +2,62 @@ import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
 import config from '../config/config.js';
 import logger from '../utils/logger.js';
+import { errorResponse } from '../utils/response.js';
 
-// Middleware to verify JWT token
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader?.split(' ')[1];
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access token required' 
-      });
+      return errorResponse(res, 'Access token required', 401);
     }
 
     const decoded = jwt.verify(token, config.jwtSecret);
     
-    // Get user from database to ensure they still exist
     const userResult = await query(
       'SELECT id, username, email, first_name, last_name, is_organizer, is_verified FROM users WHERE id = $1',
       [decoded.userId]
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
+      return errorResponse(res, 'User not found', 401);
     }
 
     req.user = userResult.rows[0];
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token expired' 
-      });
+      return errorResponse(res, 'Token expired', 401);
     }
     
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid token' 
-      });
+      return errorResponse(res, 'Invalid token', 401);
     }
 
     logger.error('Auth middleware error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
-    });
+    return errorResponse(res, 'Internal server error', 500);
   }
 };
 
-// Middleware to check if user is an organizer
 export const requireOrganizer = (req, res, next) => {
-  if (!req.user.is_organizer) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Organizer access required' 
-    });
+  if (!req.user?.is_organizer) {
+    return errorResponse(res, 'Organizer access required', 403);
   }
   next();
 };
 
-// Middleware to check if user is verified
 export const requireVerified = (req, res, next) => {
-  if (!req.user.is_verified) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Account verification required' 
-    });
+  if (!req.user?.is_verified) {
+    return errorResponse(res, 'Account verification required', 403);
   }
   next();
 };
 
-// Optional authentication middleware (doesn't fail if no token)
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = authHeader?.split(' ')[1];
 
     if (token) {
       const decoded = jwt.verify(token, config.jwtSecret);
@@ -98,7 +73,6 @@ export const optionalAuth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    // Continue without authentication if token is invalid
     next();
   }
 };
