@@ -1,7 +1,9 @@
 import { query } from '../../config/database.js';
 import { esewaConfig } from '../esewa/config.js';
+import { khaltiConfig } from '../khalti/config.js';
 import { createPaymentParams } from '../esewa/signature.js';
-import { verifyPaymentStatus, isPaymentSuccessful, isPaymentPending, getStatusMessage } from '../esewa/api.js';
+import { verifyPaymentStatus as verifyEsewaStatus, isPaymentSuccessful as isEsewaSuccessful, isPaymentPending as isEsewaPending, getStatusMessage as getEsewaMessage } from '../esewa/api.js';
+import { initiateKhaltiPayment, verifyKhaltiPayment, isKhaltiPaymentSuccessful, isKhaltiPaymentPending, getKhaltiStatusMessage } from '../khalti/api.js';
 import { PAYMENT_STATUS, BOOKING_STATUS, PAYMENT_METHODS } from '../esewa/constants.js';
 import { logPaymentInitiation, logPaymentSuccess, logPaymentFailure } from './transactionLogger.js';
 
@@ -47,9 +49,9 @@ const validateSeatAvailability = async (event_id, seat_numbers, quantity) => {
   return event;
 };
 
-export const initiatePayment = async (userId, { event_id, seat_numbers, quantity, amount }) => {
-  const event = await validateSeatAvailability(event_id, seat_numbers, quantity);
-
+const createBooking = async (userId, event, event_id, seat_numbers, quantity, amount, gateway) => {
+  const paymentMethod = gateway === 'khalti' ? PAYMENT_METHODS.KHALTI : PAYMENT_METHODS.ESEWA;
+  
   const newBooking = await query(`
     INSERT INTO bookings (
       user_id, event_id, seat_numbers, quantity, total_amount,
@@ -58,7 +60,7 @@ export const initiatePayment = async (userId, { event_id, seat_numbers, quantity
     RETURNING *
   `, [
     userId, event_id, seat_numbers, quantity, amount,
-    event.currency, PAYMENT_METHODS.ESEWA, BOOKING_STATUS.PENDING, PAYMENT_STATUS.PENDING
+    event.currency, paymentMethod, BOOKING_STATUS.PENDING, PAYMENT_STATUS.PENDING
   ]);
 
   const booking = newBooking.rows[0];
@@ -66,6 +68,31 @@ export const initiatePayment = async (userId, { event_id, seat_numbers, quantity
 
   await query('UPDATE bookings SET transaction_uuid = $1 WHERE id = $2', [transaction_uuid, booking.id]);
   await query('UPDATE events SET available_seats = available_seats - $1 WHERE id = $2', [quantity, event_id]);
+
+  return { booking, transaction_uuid };
+};
+
+export const initiatePayment = async (userId, { event_id, seat_numbers, quantity, amount, customer_info, gateway = 'esewa' }) => {
+  const event = await validateSeatAvailability(event_id, seat_numbers, quantity);
+  const { booking, transaction_uuid } = await createBooking(userId, event, event_id, seat_numbers, quantity, amount, gateway);
+
+  await logPaymentInitiation(booking.id, transaction_uuid, amount);
+
+  if (gateway === 'khalti') {
+    const khaltiPayment = await initiateKhaltiPayment({
+      purchase_order_id: transaction_uuid,
+      purchase_order_name: `Event Booking #${booking.id}`,
+      amount,
+      customer_info: customer_info || {},
+    });
+
+    return {
+      booking_id: booking.id,
+      pidx: khaltiPayment.pidx,
+      payment_url: khaltiPayment.payment_url,
+      expires_at: khaltiPayment.expires_at,
+    };
+  }
 
   const breakdown = calculateBreakdown(amount);
   const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
@@ -79,8 +106,6 @@ export const initiatePayment = async (userId, { event_id, seat_numbers, quantity
     success_url: `${baseUrl}/api/payment/status/${booking.id}`,
     failure_url: `${esewaConfig.failureUrl}?booking_id=${booking.id}`,
   });
-
-  await logPaymentInitiation(booking.id, transaction_uuid, amount);
 
   return {
     booking_id: booking.id,
@@ -105,17 +130,15 @@ const awardRewardPoints = async (userId, quantity) => {
   );
 };
 
-export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, total_amount, ref_id, booking_id }) => {
-  if (!transaction_uuid) throw new Error('Transaction UUID is required');
-
+export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, total_amount, ref_id, booking_id, pidx, gateway }) => {
   const bookingResult = await query(
-    'SELECT * FROM bookings WHERE id = $1 AND transaction_uuid = $2',
-    [booking_id, transaction_uuid]
+    transaction_uuid 
+      ? 'SELECT * FROM bookings WHERE id = $1 AND transaction_uuid = $2'
+      : 'SELECT * FROM bookings WHERE id = $1',
+    transaction_uuid ? [booking_id, transaction_uuid] : [booking_id]
   );
 
-  if (bookingResult.rows.length === 0) {
-    throw new Error('Booking not found or transaction UUID mismatch');
-  }
+  if (bookingResult.rows.length === 0) throw new Error('Booking not found');
 
   const booking = bookingResult.rows[0];
   
@@ -123,41 +146,77 @@ export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, 
     return { alreadyVerified: true, booking };
   }
 
+  if (gateway === 'khalti' && pidx) {
+    return verifyKhaltiPaymentInternal(booking, pidx, booking_id);
+  }
+
+  return verifyEsewaPaymentInternal(booking, transaction_uuid, product_code, total_amount, ref_id, booking_id);
+};
+
+const verifyEsewaPaymentInternal = async (booking, transaction_uuid, product_code, total_amount, ref_id, booking_id) => {
+  if (!transaction_uuid) throw new Error('Transaction UUID is required');
+
   const finalProductCode = product_code || esewaConfig.productCode;
   const finalTotalAmount = total_amount || booking.total_amount;
   
   if (parseFloat(finalTotalAmount) !== parseFloat(booking.total_amount)) {
-    console.error('Amount mismatch - possible fraud:', {
-      esewa: finalTotalAmount,
-      booking: booking.total_amount
-    });
+    console.error('eSewa amount mismatch:', { esewa: finalTotalAmount, booking: booking.total_amount });
     throw new Error('Payment amount mismatch');
   }
 
-  const verificationResult = await verifyPaymentStatus(transaction_uuid, finalTotalAmount, finalProductCode);
+  const verificationResult = await verifyEsewaStatus(transaction_uuid, finalTotalAmount, finalProductCode);
 
-  if (isPaymentSuccessful(verificationResult.status)) {
-    const updatedBooking = await query(`
-      UPDATE bookings
-      SET payment_status = $1, status = $2, payment_reference = $3, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
-      RETURNING *
-    `, [PAYMENT_STATUS.COMPLETED, BOOKING_STATUS.CONFIRMED, ref_id || verificationResult.ref_id, booking_id]);
-
-    await awardRewardPoints(booking.user_id, booking.quantity);
-    await logPaymentSuccess(booking_id, transaction_uuid, booking.total_amount, verificationResult);
-
-    return {
-      success: true,
-      booking: updatedBooking.rows[0],
-      message: 'Payment verified and booking confirmed',
-    };
+  if (isEsewaSuccessful(verificationResult.status)) {
+    return completePayment(booking, booking_id, ref_id || verificationResult.ref_id, transaction_uuid, verificationResult);
   }
 
-  if (isPaymentPending(verificationResult.status)) {
+  if (isEsewaPending(verificationResult.status)) {
     return { success: false, pending: true, message: 'Payment is being processed' };
   }
 
+  await failPayment(booking, booking_id, transaction_uuid, getEsewaMessage(verificationResult.status), verificationResult);
+  throw new Error(`Payment verification failed: ${getEsewaMessage(verificationResult.status)}`);
+};
+
+const verifyKhaltiPaymentInternal = async (booking, pidx, booking_id) => {
+  const verificationResult = await verifyKhaltiPayment(pidx);
+
+  if (parseFloat(verificationResult.total_amount) !== parseFloat(booking.total_amount * 100)) {
+    console.error('Khalti amount mismatch:', { khalti: verificationResult.total_amount, booking: booking.total_amount * 100 });
+    throw new Error('Payment amount mismatch');
+  }
+
+  if (isKhaltiPaymentSuccessful(verificationResult.status)) {
+    return completePayment(booking, booking_id, verificationResult.transaction_id, pidx, verificationResult);
+  }
+
+  if (isKhaltiPaymentPending(verificationResult.status)) {
+    return { success: false, pending: true, message: 'Payment is being processed' };
+  }
+
+  await failPayment(booking, booking_id, pidx, getKhaltiStatusMessage(verificationResult.status), verificationResult);
+  throw new Error(`Payment verification failed: ${getKhaltiStatusMessage(verificationResult.status)}`);
+};
+
+const completePayment = async (booking, booking_id, payment_reference, transaction_id, verificationResult) => {
+  const updatedBooking = await query(`
+    UPDATE bookings
+    SET payment_status = $1, status = $2, payment_reference = $3, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $4
+    RETURNING *
+  `, [PAYMENT_STATUS.COMPLETED, BOOKING_STATUS.CONFIRMED, payment_reference, booking_id]);
+
+  await awardRewardPoints(booking.user_id, booking.quantity);
+  await logPaymentSuccess(booking_id, transaction_id, booking.total_amount, verificationResult);
+
+  return {
+    success: true,
+    booking: updatedBooking.rows[0],
+    message: 'Payment verified and booking confirmed',
+  };
+};
+
+const failPayment = async (booking, booking_id, transaction_id, errorMessage, verificationResult) => {
   await restoreSeats(booking);
   await query(`
     UPDATE bookings
@@ -165,9 +224,7 @@ export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, 
     WHERE id = $3
   `, [PAYMENT_STATUS.FAILED, BOOKING_STATUS.CANCELLED, booking_id]);
 
-  await logPaymentFailure(booking_id, transaction_uuid, booking.total_amount, getStatusMessage(verificationResult.status), verificationResult);
-
-  throw new Error(`Payment verification failed: ${getStatusMessage(verificationResult.status)}`);
+  await logPaymentFailure(booking_id, transaction_id, booking.total_amount, errorMessage, verificationResult);
 };
 
 export const handlePaymentFailure = async (booking_id) => {

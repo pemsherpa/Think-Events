@@ -35,9 +35,9 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, eventId, s
       id: 'khalti',
       name: 'Khalti',
       logo: '/api/placeholder/80/40',
-      description: 'Pay with Khalti digital wallet (Coming Soon)',
+      description: 'Pay with Khalti digital wallet',
       color: 'border-purple-500',
-      enabled: false
+      enabled: true
     },
     {
       id: 'ime',
@@ -114,17 +114,19 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, eventId, s
         return;
       }
 
-      // Prepare payment data
       const paymentData = {
         event_id: parseInt(eventId),
         seat_numbers: selectedSeats.map((seat: any) => seat.id || seat.seatNumber),
         quantity: selectedSeats.length,
         amount: finalAmount,
-        customerInfo: {} // Add any additional customer info if needed
+        customer_info: {},
       };
 
-      // Initiate payment with backend
-      const response = await fetch(`${API_URL}/api/payment/esewa/initiate`, {
+      const endpoint = selectedMethod === 'khalti' 
+        ? '/api/payment/khalti/initiate' 
+        : '/api/payment/esewa/initiate';
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -139,26 +141,25 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({ totalAmount, eventId, s
         throw new Error(result.message || 'Failed to initiate payment');
       }
 
-      // Create a form and submit to eSewa
-      const { payment_url, payment_params } = result.data;
+      if (selectedMethod === 'khalti') {
+        window.location.href = result.data.payment_url;
+      } else {
+        const { payment_url, payment_params } = result.data;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = payment_url;
 
-      // Create form dynamically
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payment_url;
+        Object.keys(payment_params).forEach(key => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = payment_params[key];
+          form.appendChild(input);
+        });
 
-      // Add form fields
-      Object.keys(payment_params).forEach(key => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = payment_params[key];
-        form.appendChild(input);
-      });
-
-      // Append form to body and submit
-      document.body.appendChild(form);
-      form.submit();
+        document.body.appendChild(form);
+        form.submit();
+      }
 
     } catch (error: any) {
       console.error('Payment initiation error:', error);

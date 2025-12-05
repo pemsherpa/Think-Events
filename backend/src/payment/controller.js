@@ -1,3 +1,4 @@
+import { query } from '../config/database.js';
 import * as paymentService from './services/paymentService.js';
 import { verifyEsewaSignature } from './esewa/signature.js';
 
@@ -9,6 +10,7 @@ export const initiateEsewaPayment = async (req, res) => {
       seat_numbers,
       quantity,
       amount,
+      gateway: 'esewa',
     });
 
     res.status(200).json({
@@ -18,6 +20,32 @@ export const initiateEsewaPayment = async (req, res) => {
     });
   } catch (error) {
     console.error('Initiate payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to initiate payment',
+    });
+  }
+};
+
+export const initiateKhaltiPayment = async (req, res) => {
+  try {
+    const { event_id, seat_numbers, quantity, amount, customer_info } = req.body;
+    const paymentData = await paymentService.initiatePayment(req.user.id, {
+      event_id,
+      seat_numbers,
+      quantity,
+      amount,
+      customer_info,
+      gateway: 'khalti',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment initiated successfully',
+      data: paymentData,
+    });
+  } catch (error) {
+    console.error('Khalti payment initiation error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to initiate payment',
@@ -90,6 +118,35 @@ export const handleEsewaFailure = async (req, res) => {
   }
 };
 
+export const handleKhaltiCallback = async (req, res) => {
+  try {
+    const { pidx, purchase_order_id, transaction_id, status } = req.query;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    if (!pidx) return res.redirect(`${frontendUrl}/payment/khalti/failure?error=missing_pidx`);
+
+    const bookingResult = await query('SELECT id FROM bookings WHERE transaction_uuid = $1', [purchase_order_id]);
+    if (bookingResult.rows.length === 0) {
+      return res.redirect(`${frontendUrl}/payment/khalti/failure?error=booking_not_found`);
+    }
+
+    const booking_id = bookingResult.rows[0].id;
+
+    if (status === 'Completed') {
+      const result = await paymentService.verifyAndConfirmPayment({ pidx, booking_id, gateway: 'khalti' });
+      if (result.success || result.alreadyVerified) {
+        return res.redirect(`${frontendUrl}/payment/khalti/success?booking_id=${booking_id}&pidx=${pidx}&transaction_id=${transaction_id}`);
+      }
+    }
+
+    return res.redirect(`${frontendUrl}/payment/khalti/failure?booking_id=${booking_id}&status=${status}`);
+  } catch (error) {
+    console.error('Khalti callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}/payment/khalti/failure?error=${encodeURIComponent(error.message)}`);
+  }
+};
+
 export const checkPaymentStatus = async (req, res) => {
   try {
     const { booking_id } = req.params;
@@ -111,6 +168,7 @@ export const checkPaymentStatus = async (req, res) => {
         total_amount: esewaData.total_amount,
         ref_id: esewaData.transaction_code,
         booking_id: parseInt(booking_id),
+        gateway: 'esewa',
       });
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -146,3 +204,11 @@ export const checkPaymentStatus = async (req, res) => {
   }
 };
 
+export default {
+  initiateEsewaPayment,
+  initiateKhaltiPayment,
+  verifyEsewaPayment,
+  handleEsewaFailure,
+  handleKhaltiCallback,
+  checkPaymentStatus,
+};

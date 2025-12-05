@@ -25,6 +25,17 @@ router.get('/esewa/failure', [
   handleValidationErrors
 ], controller.handleEsewaFailure);
 
+router.post('/khalti/initiate', [
+  authenticateToken,
+  body('event_id').isInt(),
+  body('seat_numbers').isArray(),
+  body('quantity').isInt({ min: 1 }),
+  body('amount').isFloat({ min: 0 }),
+  handleValidationErrors
+], controller.initiateKhaltiPayment);
+
+router.get('/khalti/callback', controller.handleKhaltiCallback);
+
 router.get('/status/:booking_id', 
   (req, res, next) => req.query.data ? next() : authenticateToken(req, res, next),
   controller.checkPaymentStatus
