@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
 import config from '../config/config.js';
+import logger from '../utils/logger.js';
 
 // Middleware to verify JWT token
 export const authenticateToken = async (req, res, next) => {
@@ -47,7 +48,7 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    console.error('Auth middleware error:', error);
+    logger.error('Auth middleware error:', error);
     return res.status(500).json({ 
       success: false, 
       message: 'Internal server error' 

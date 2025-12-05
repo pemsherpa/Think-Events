@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import config from '../config/config.js';
+import logger from './logger.js';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -31,7 +32,7 @@ export const sendOtpEmail = async (email, otp) => {
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    logger.error('Error sending OTP email:', error);
     return { success: false, error: error.message };
   }
 };
@@ -69,7 +70,7 @@ export const sendTicketEmail = async (email, ticketDetails, pdfBuffer) => {
     await transporter.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
-    console.error('Error sending ticket email:', error);
+    logger.error('Error sending ticket email:', error);
     return { success: false, error: error.message };
   }
 };

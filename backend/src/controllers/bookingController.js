@@ -1,6 +1,7 @@
 import { query } from '../config/database.js';
 import { sendTicketEmail } from '../utils/emailService.js';
 import { generateTicketPDF } from '../utils/pdfGenerator.js';
+import logger from '../utils/logger.js';
 
 // Create a new booking
 export const createBooking = async (req, res) => {
@@ -71,7 +72,7 @@ export const createBooking = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Create booking error:', error);
+    logger.error('Create booking error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -143,7 +144,7 @@ export const getUserBookings = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get user bookings error:', error);
+    logger.error('Get user bookings error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -184,7 +185,7 @@ export const getBookingById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get booking by ID error:', error);
+    logger.error('Get booking by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -310,10 +311,10 @@ export const updateBookingStatus = async (req, res) => {
           const qrCode = await generateTicketQR(ticketDetails);
           
           await sendTicketEmail(ticketDetails.user_email, ticketDetails, qrCode);
-          console.log(`Ticket email sent to ${ticketDetails.user_email}`);
+          logger.info(`Ticket email sent to ${ticketDetails.user_email}`);
         }
       } catch (emailError) {
-        console.error('Failed to send ticket email:', emailError);
+        logger.error('Failed to send ticket email:', emailError);
         // Don't fail the request, just log the error
       }
     }
@@ -325,7 +326,7 @@ export const updateBookingStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update booking status error:', error);
+    logger.error('Update booking status error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -342,7 +343,7 @@ export const cancelBooking = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Cancel booking error:', error);
+    logger.error('Cancel booking error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -398,7 +399,7 @@ export const getAvailableSeats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get available seats error:', error);
+    logger.error('Get available seats error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -436,7 +437,7 @@ export const getBookingStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get booking stats error:', error);
+    logger.error('Get booking stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

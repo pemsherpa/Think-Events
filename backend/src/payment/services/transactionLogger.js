@@ -1,4 +1,5 @@
 import { query } from '../../config/database.js';
+import logger from '../../utils/logger.js';
 
 const logTransaction = async (transactionData) => {
   try {
@@ -23,7 +24,7 @@ const logTransaction = async (transactionData) => {
       JSON.stringify(gateway_response), error_message, JSON.stringify(metadata),
     ]);
   } catch (error) {
-    console.error('Transaction logging failed:', error);
+    logger.error('Transaction logging failed:', error);
   }
 };
 

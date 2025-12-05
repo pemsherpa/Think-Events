@@ -3,6 +3,7 @@ import { esewaConfig } from '../esewa/config.js';
 import { khaltiConfig } from '../khalti/config.js';
 import { createPaymentParams } from '../esewa/signature.js';
 import { verifyPaymentStatus as verifyEsewaStatus, isPaymentSuccessful as isEsewaSuccessful, isPaymentPending as isEsewaPending, getStatusMessage as getEsewaMessage } from '../esewa/api.js';
+import logger from '../../utils/logger.js';
 import { initiateKhaltiPayment, verifyKhaltiPayment, isKhaltiPaymentSuccessful, isKhaltiPaymentPending, getKhaltiStatusMessage } from '../khalti/api.js';
 import { PAYMENT_STATUS, BOOKING_STATUS, PAYMENT_METHODS } from '../esewa/constants.js';
 import { logPaymentInitiation, logPaymentSuccess, logPaymentFailure } from './transactionLogger.js';
@@ -160,7 +161,7 @@ const verifyEsewaPaymentInternal = async (booking, transaction_uuid, product_cod
   const finalTotalAmount = total_amount || booking.total_amount;
   
   if (parseFloat(finalTotalAmount) !== parseFloat(booking.total_amount)) {
-    console.error('eSewa amount mismatch:', { esewa: finalTotalAmount, booking: booking.total_amount });
+    logger.error('eSewa amount mismatch:', { esewa: finalTotalAmount, booking: booking.total_amount });
     throw new Error('Payment amount mismatch');
   }
 
@@ -182,7 +183,7 @@ const verifyKhaltiPaymentInternal = async (booking, pidx, booking_id) => {
   const verificationResult = await verifyKhaltiPayment(pidx);
 
   if (parseFloat(verificationResult.total_amount) !== parseFloat(booking.total_amount * 100)) {
-    console.error('Khalti amount mismatch:', { khalti: verificationResult.total_amount, booking: booking.total_amount * 100 });
+    logger.error('Khalti amount mismatch:', { khalti: verificationResult.total_amount, booking: booking.total_amount * 100 });
     throw new Error('Payment amount mismatch');
   }
 

@@ -1,40 +1,9 @@
 import { query } from '../config/database.js';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-
-// Configure multer for event image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/events';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `event-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'));
-    }
-  }
-});
+import { eventImageUpload } from '../utils/upload.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { successResponse, errorResponse } from '../utils/response.js';
+import config from '../config/config.js';
+import logger from '../utils/logger.js';
 
 // Get all events with filters
 export const getEvents = async (req, res) => {
@@ -172,7 +141,7 @@ export const getEvents = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get events error:', error);
+    logger.error('Get events error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -229,7 +198,7 @@ export const getEventById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get event by ID error:', error);
+    logger.error('Get event by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -252,7 +221,7 @@ export const getCategories = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get categories error:', error);
+    logger.error('Get categories error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -317,7 +286,7 @@ export const getVenues = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get venues error:', error);
+    logger.error('Get venues error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -362,7 +331,7 @@ export const getVenueById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get venue by ID error:', error);
+    logger.error('Get venue by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -447,7 +416,7 @@ export const createEvent = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Create event error:', error);
+    logger.error('Create event error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -526,7 +495,7 @@ export const updateEvent = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update event error:', error);
+    logger.error('Update event error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -580,7 +549,7 @@ export const deleteEvent = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete event error:', error);
+    logger.error('Delete event error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -605,45 +574,25 @@ export const getMyEvents = async (req, res) => {
       data: eventsResult.rows
     });
   } catch (error) {
-    console.error('Get my events error:', error);
+    logger.error('Get my events error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-// Upload event image
-export const uploadEventImage = async (req, res) => {
-  try {
-    upload.single('eventImage')(req, res, async (err) => {
+export const uploadEventImage = asyncHandler(async (req, res) => {
+  return new Promise((resolve) => {
+    eventImageUpload.single('eventImage')(req, res, async (err) => {
       if (err) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
+        return resolve(errorResponse(res, err.message, 400));
       }
 
       if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No file uploaded'
-        });
+        return resolve(errorResponse(res, 'No file uploaded', 400));
       }
 
-      // Generate image URL
-      const imageUrl = `${process.env.BASE_URL || 'http://localhost:5001'}/uploads/events/${req.file.filename}`;
+      const imageUrl = `${config.baseUrl}/uploads/events/${req.file.filename}`;
 
-      res.json({
-        success: true,
-        message: 'Event image uploaded successfully',
-        data: {
-          image_url: imageUrl
-        }
-      });
+      return resolve(successResponse(res, { image_url: imageUrl }, 'Event image uploaded successfully'));
     });
-  } catch (error) {
-    console.error('Upload event image error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
+  });
+});

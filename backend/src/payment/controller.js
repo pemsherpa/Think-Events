@@ -1,6 +1,7 @@
 import { query } from '../config/database.js';
 import * as paymentService from './services/paymentService.js';
 import { verifyEsewaSignature } from './esewa/signature.js';
+import logger from '../utils/logger.js';
 
 export const initiateEsewaPayment = async (req, res) => {
   try {
@@ -19,7 +20,7 @@ export const initiateEsewaPayment = async (req, res) => {
       data: paymentData,
     });
   } catch (error) {
-    console.error('Initiate payment error:', error);
+    logger.error('Initiate payment error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to initiate payment',
@@ -45,7 +46,7 @@ export const initiateKhaltiPayment = async (req, res) => {
       data: paymentData,
     });
   } catch (error) {
-    console.error('Khalti payment initiation error:', error);
+    logger.error('Khalti payment initiation error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to initiate payment',
@@ -91,7 +92,7 @@ export const verifyEsewaPayment = async (req, res) => {
       data: result.booking,
     });
   } catch (error) {
-    console.error('Verify payment error:', error);
+    logger.error('Verify payment error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to verify payment',
@@ -110,7 +111,7 @@ export const handleEsewaFailure = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error('Handle payment failure error:', error);
+    logger.error('Handle payment failure error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to handle payment failure',
@@ -141,7 +142,7 @@ export const handleKhaltiCallback = async (req, res) => {
 
     return res.redirect(`${frontendUrl}/payment/khalti/failure?booking_id=${booking_id}&status=${status}`);
   } catch (error) {
-    console.error('Khalti callback error:', error);
+    logger.error('Khalti callback error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     return res.redirect(`${frontendUrl}/payment/khalti/failure?error=${encodeURIComponent(error.message)}`);
   }
@@ -157,7 +158,7 @@ export const checkPaymentStatus = async (req, res) => {
       const esewaData = JSON.parse(decodedData);
 
       if (!verifyEsewaSignature(esewaData)) {
-        console.error('Invalid eSewa callback signature:', { booking_id, transaction_uuid: esewaData.transaction_uuid });
+        logger.error('Invalid eSewa callback signature:', { booking_id, transaction_uuid: esewaData.transaction_uuid });
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         return res.redirect(`${frontendUrl}/payment/esewa/failure?booking_id=${booking_id}&error=invalid_signature`);
       }
@@ -196,7 +197,7 @@ export const checkPaymentStatus = async (req, res) => {
     res.status(200).json({ success: true, data: status });
 
   } catch (error) {
-    console.error('Check payment status error:', error);
+    logger.error('Check payment status error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to check payment status',

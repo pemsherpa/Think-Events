@@ -1,5 +1,6 @@
 import twilio from 'twilio';
 import config from '../config/config.js';
+import logger from './logger.js';
 
 const hasTwilioCreds = Boolean(config.twilio.accountSid && config.twilio.authToken);
 let client = null;
@@ -105,8 +106,8 @@ export const sendOTP = async (phoneNumber, otpCode) => {
       // 3. Use email fallback
       
       // For now, let's use a fallback approach
-      console.log('⚠️ Indian to Indian SMS not supported with current Twilio setup');
-      console.log('💡 Consider getting a US Twilio number for international SMS');
+      logger.warn('Indian to Indian SMS not supported with current Twilio setup');
+      logger.warn('Consider getting a US Twilio number for international SMS');
       
       // Return success but log the limitation
       return { 
@@ -124,11 +125,11 @@ export const sendOTP = async (phoneNumber, otpCode) => {
       to: formattedPhone
     });
 
-    console.log('OTP sent successfully:', message.sid);
+    logger.info('OTP sent successfully:', message.sid);
     return { success: true, messageId: message.sid, formattedPhone };
     
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    logger.error('Error sending OTP:', error);
     
     // Handle specific Twilio errors
     if (error.code === 21211) {

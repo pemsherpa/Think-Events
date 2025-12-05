@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import logger from '../utils/logger.js';
 
 // Get all organizers
 export const getOrganizers = async (req, res) => {
@@ -23,7 +24,7 @@ export const getOrganizers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get organizers error:', error);
+    logger.error('Get organizers error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -62,7 +63,7 @@ export const getOrganizerById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get organizer by ID error:', error);
+    logger.error('Get organizer by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -127,7 +128,7 @@ export const getOrganizerEvents = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get organizer events error:', error);
+    logger.error('Get organizer events error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
