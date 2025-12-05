@@ -1,5 +1,6 @@
 import { esewaConfig } from './config.js';
 import { ESEWA_STATUS } from './constants.js';
+import logger from '../../utils/logger.js';
 
 export const verifyPaymentStatus = async (transaction_uuid, total_amount, product_code) => {
   const { retryAttempts, retryDelay, statusUrl } = esewaConfig;
@@ -30,7 +31,7 @@ export const verifyPaymentStatus = async (transaction_uuid, total_amount, produc
 
     } catch (error) {
       lastError = error;
-      console.error(`eSewa verification attempt ${attempt}/${retryAttempts} failed:`, error.message);
+      logger.error(`eSewa verification attempt ${attempt}/${retryAttempts} failed:`, error.message);
       if (attempt < retryAttempts) {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }

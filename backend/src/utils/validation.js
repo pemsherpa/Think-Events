@@ -1,4 +1,5 @@
 import { body, validationResult } from 'express-validator';
+import logger from './logger.js';
 
 // Common validation rules
 export const commonValidations = {
@@ -210,7 +211,7 @@ export const validateSeatAvailability = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Seat validation error:', error);
+    logger.error('Seat validation error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error'

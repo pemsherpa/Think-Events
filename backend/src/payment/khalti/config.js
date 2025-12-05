@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import logger from '../../utils/logger.js';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -28,8 +29,8 @@ export const khaltiConfig = {
 };
 
 if (!khaltiConfig.secretKey) {
-  console.warn('⚠️  KHALTI_SECRET_KEY not configured. Khalti payments will not work.');
-  console.warn('📝 Get test keys from: https://test-admin.khalti.com (OTP: 987654)');
+  logger.warn('KHALTI_SECRET_KEY not configured. Khalti payments will not work.');
+  logger.warn('Get test keys from: https://test-admin.khalti.com (OTP: 987654)');
 }
 
 export default khaltiConfig;

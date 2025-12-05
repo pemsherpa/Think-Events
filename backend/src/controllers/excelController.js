@@ -14,9 +14,9 @@ export const initializeSyncService = async (excelFilePath) => {
       const module = await import('../../scripts/excel-sync-service.js');
       const ExcelSyncService = module.default;
       syncService = new ExcelSyncService(excelFilePath);
-      console.log('✅ Excel sync service initialized');
+      logger.info('Excel sync service initialized');
     } catch (err) {
-      console.error('Excel sync service unavailable:', err?.message || err);
+      logger.error('Excel sync service unavailable:', err?.message || err);
       throw err;
     }
   }
@@ -38,7 +38,7 @@ export const manualSync = async (req, res) => {
       });
     }
 
-    console.log('🔄 Manual sync triggered via API');
+    logger.info('Manual sync triggered via API');
     await syncService.importEventsFromExcel();
     
     res.json({
@@ -47,7 +47,7 @@ export const manualSync = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Manual sync error:', error);
+    logger.error('❌ Manual sync error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to sync events from Excel file',
@@ -81,7 +81,7 @@ export const getSyncStatus = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Get sync status error:', error);
+    logger.error('❌ Get sync status error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get sync status',
@@ -115,7 +115,7 @@ export const startWatching = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Start watching error:', error);
+    logger.error('❌ Start watching error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to start watching Excel file',
@@ -149,7 +149,7 @@ export const stopWatching = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Stop watching error:', error);
+    logger.error('❌ Stop watching error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to stop watching Excel file',

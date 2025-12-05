@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { esewaConfig } from './config.js';
 import { SIGNATURE_FIELDS } from './constants.js';
+import logger from '../../utils/logger.js';
 
 const generateHmacSignature = (message, secretKey) => {
   const hmac = crypto.createHmac('sha256', secretKey);
@@ -29,7 +30,7 @@ export const verifyEsewaSignature = (callbackData) => {
   } = callbackData;
 
   if (!signature || !signed_field_names) {
-    console.error('Missing signature in eSewa callback');
+    logger.error('Missing signature in eSewa callback');
     return false;
   }
 

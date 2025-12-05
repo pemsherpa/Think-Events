@@ -1,6 +1,7 @@
 import { query } from '../config/database.js';
 import { sendTicketEmail } from '../utils/emailService.js';
 import { generateTicketPDF } from '../utils/pdfGenerator.js';
+import logger from '../utils/logger.js';
 
 // Get all seat categories
 export const getSeatCategories = async (req, res) => {
@@ -12,7 +13,7 @@ export const getSeatCategories = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('Get seat categories error:', error);
+    logger.error('Get seat categories error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch seat categories'
@@ -35,7 +36,7 @@ export const createSeatCategory = async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('Create seat category error:', error);
+    logger.error('Create seat category error:', error);
     if (error.code === '23505') { // Unique constraint violation
       res.status(400).json({
         success: false,
@@ -100,7 +101,7 @@ export const getSeatLayout = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get seat layout error:', error);
+    logger.error('Get seat layout error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch seat layout'
@@ -206,7 +207,7 @@ export const createSeatLayout = async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Create seat layout error:', error);
+    logger.error('Create seat layout error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create seat layout'
@@ -298,7 +299,7 @@ export const updateSeatLayout = async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Update seat layout error:', error);
+    logger.error('Update seat layout error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update seat layout'
@@ -344,7 +345,7 @@ export const deleteSeatLayout = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Delete seat layout error:', error);
+    logger.error('Delete seat layout error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete seat layout'
@@ -411,7 +412,7 @@ export const getAvailableSeats = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Get available seats error:', error);
+    logger.error('Get available seats error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch available seats'
@@ -639,9 +640,9 @@ export const bookSeats = async (req, res) => {
             currency: 'NPR'
           }, pdfBuffer);
           
-          console.log(`Ticket email sent to ${eventDetails.user_email}`);
+          logger.info(`Ticket email sent to ${eventDetails.user_email}`);
         } catch (emailError) {
-          console.error('Failed to send ticket email:', emailError);
+          logger.error('Failed to send ticket email:', emailError);
           // Don't fail the request if email fails, just log it
         }
       }
@@ -652,7 +653,7 @@ export const bookSeats = async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Book seats error:', error);
+    logger.error('Book seats error:', error);
     
     if (error.message.includes('Not enough capacity')) {
       return res.status(409).json({

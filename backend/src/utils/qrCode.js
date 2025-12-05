@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import logger from './logger.js';
 
 export const generateTicketQR = async (bookingData) => {
   try {
@@ -16,7 +17,7 @@ export const generateTicketQR = async (bookingData) => {
     const qrCodeDataUrl = await QRCode.toDataURL(payload);
     return qrCodeDataUrl;
   } catch (error) {
-    console.error('Error generating QR code:', error);
+    logger.error('Error generating QR code:', error);
     throw error;
   }
 };
