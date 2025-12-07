@@ -14,7 +14,6 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
@@ -27,15 +26,14 @@ const Signup: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await signup({ 
-        username, 
-        email, 
-        password, 
-        first_name: firstName, 
-        last_name: lastName,
-        phone
+      const response = await signup({
+        username,
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName
       });
 
       if (response && (response.requiresVerification || response.requiresOTP)) {
@@ -58,7 +56,7 @@ const Signup: React.FC = () => {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !otpCode) return;
-    
+
     setLoading(true);
     try {
       // We need to call the verify endpoint directly or via auth context
@@ -66,15 +64,15 @@ const Signup: React.FC = () => {
       // For now, let's use fetch directly or assume a verify function exists
       // But wait, we should probably add verifyOTP to AuthContext. 
       // Let's assume we will add it.
-      
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/verify-signup-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, otpCode })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         toast({
           title: "Success",
@@ -83,11 +81,11 @@ const Signup: React.FC = () => {
         // Login the user or redirect to login
         // If the backend returns a token, we can store it
         if (data.token) {
-           localStorage.setItem('auth_token', data.token);
-           localStorage.setItem('user', JSON.stringify(data.user));
-           window.location.href = '/'; // Force reload to update context
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = '/'; // Force reload to update context
         } else {
-           navigate('/login');
+          navigate('/login');
         }
       } else {
         setError(data.message || 'Verification failed');
@@ -121,11 +119,11 @@ const Signup: React.FC = () => {
         });
       }
     } catch (error) {
-       toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to resend OTP",
-        });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to resend OTP",
+      });
     }
   };
 
@@ -160,9 +158,9 @@ const Signup: React.FC = () => {
                   required
                 />
               </div>
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200"
                 disabled={loading || otpCode.length !== 6}
               >
@@ -225,24 +223,24 @@ const Signup: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   First Name
                 </label>
-                <Input 
-                  value={firstName} 
-                  onChange={(e) => setFirstName(e.target.value)} 
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   placeholder="First name"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required 
+                  required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Last Name
                 </label>
-                <Input 
-                  value={lastName} 
-                  onChange={(e) => setLastName(e.target.value)} 
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   placeholder="Last name"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  required 
+                  required
                 />
               </div>
             </div>
@@ -251,12 +249,12 @@ const Signup: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Username
               </label>
-              <Input 
-                value={username} 
-                onChange={(e) => setUsername(e.target.value)} 
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 placeholder="Choose a username"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required 
+                required
               />
             </div>
 
@@ -264,59 +262,36 @@ const Signup: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
-              <Input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required 
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <Input 
-                type="tel" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                placeholder="Enter your phone number"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required 
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Enter your 10-digit mobile number. We'll automatically add the country code:
-                <br />• Most 10-digit numbers starting with 6, 7, 8, 9 → +91 (India)
-                <br />• Numbers with +977 prefix → +977 (Nepal)
-              </p>
-              {phone && phone.length === 10 && (
-                <p className="text-xs text-blue-600 mt-1">
-                  {phone.startsWith('+977') ? '🇳🇵 Will be formatted as Nepalese number (+977)' : 
-                   '🇮🇳 Will be formatted as Indian number (+91)'}
-                </p>
-              )}
-            </div>
+
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <Input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required 
+                required
               />
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-105" 
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 transform hover:scale-105"
             disabled={loading}
           >
             {loading ? (

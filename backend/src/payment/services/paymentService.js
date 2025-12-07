@@ -7,6 +7,8 @@ import logger from '../../utils/logger.js';
 import { initiateKhaltiPayment, verifyKhaltiPayment, isKhaltiPaymentSuccessful, isKhaltiPaymentPending, getKhaltiStatusMessage } from '../khalti/api.js';
 import { PAYMENT_STATUS, BOOKING_STATUS, PAYMENT_METHODS } from '../esewa/constants.js';
 import { logPaymentInitiation, logPaymentSuccess, logPaymentFailure } from './transactionLogger.js';
+import { sendTicketEmail } from '../../utils/emailService.js';
+import { generateTicketPDF } from '../../utils/pdfGenerator.js';
 
 const generateTransactionUUID = (bookingId) => {
   return `TXN-${bookingId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -14,10 +16,14 @@ const generateTransactionUUID = (bookingId) => {
 
 const calculateBreakdown = (totalAmount) => {
   const total = Math.round(totalAmount);
+  const tax = Math.round(total * 0.13);
+  const service = Math.round(total * 0.02);
+  const amount = total - tax - service; // Ensure exact sum
+
   return {
-    amount: Math.round(total * 0.85),
-    tax_amount: Math.round(total * 0.13),
-    service_charge: Math.round(total * 0.02),
+    amount: amount,
+    tax_amount: tax,
+    service_charge: service,
     total_amount: total,
   };
 };
@@ -52,7 +58,7 @@ const validateSeatAvailability = async (event_id, seat_numbers, quantity) => {
 
 const createBooking = async (userId, event, event_id, seat_numbers, quantity, amount, gateway) => {
   const paymentMethod = gateway === 'khalti' ? PAYMENT_METHODS.KHALTI : PAYMENT_METHODS.ESEWA;
-  
+
   const newBooking = await query(`
     INSERT INTO bookings (
       user_id, event_id, seat_numbers, quantity, total_amount,
@@ -97,7 +103,7 @@ export const initiatePayment = async (userId, { event_id, seat_numbers, quantity
 
   const breakdown = calculateBreakdown(amount);
   const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
-  
+
   const paymentParams = createPaymentParams({
     ...breakdown,
     transaction_uuid,
@@ -133,7 +139,7 @@ const awardRewardPoints = async (userId, quantity) => {
 
 export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, total_amount, ref_id, booking_id, pidx, gateway }) => {
   const bookingResult = await query(
-    transaction_uuid 
+    transaction_uuid
       ? 'SELECT * FROM bookings WHERE id = $1 AND transaction_uuid = $2'
       : 'SELECT * FROM bookings WHERE id = $1',
     transaction_uuid ? [booking_id, transaction_uuid] : [booking_id]
@@ -142,7 +148,7 @@ export const verifyAndConfirmPayment = async ({ transaction_uuid, product_code, 
   if (bookingResult.rows.length === 0) throw new Error('Booking not found');
 
   const booking = bookingResult.rows[0];
-  
+
   if (booking.payment_status === PAYMENT_STATUS.COMPLETED) {
     return { alreadyVerified: true, booking };
   }
@@ -159,7 +165,7 @@ const verifyEsewaPaymentInternal = async (booking, transaction_uuid, product_cod
 
   const finalProductCode = product_code || esewaConfig.productCode;
   const finalTotalAmount = total_amount || booking.total_amount;
-  
+
   if (parseFloat(finalTotalAmount) !== parseFloat(booking.total_amount)) {
     logger.error('eSewa amount mismatch:', { esewa: finalTotalAmount, booking: booking.total_amount });
     throw new Error('Payment amount mismatch');
@@ -209,6 +215,11 @@ const completePayment = async (booking, booking_id, payment_reference, transacti
 
   await awardRewardPoints(booking.user_id, booking.quantity);
   await logPaymentSuccess(booking_id, transaction_id, booking.total_amount, verificationResult);
+
+  // Send ticket email with PDF attachment (async, don't block on failure)
+  sendTicketEmailAsync(booking_id).catch(error => {
+    logger.error('Failed to send ticket email:', error);
+  });
 
   return {
     success: true,
@@ -264,5 +275,65 @@ export const getPaymentStatus = async (booking_id, user_id) => {
     transaction_uuid: booking.transaction_uuid,
     payment_reference: booking.payment_reference,
   };
+};
+
+const sendTicketEmailAsync = async (booking_id) => {
+  try {
+    // Fetch complete booking details with event, venue, and user info
+    const bookingDetails = await query(`
+      SELECT 
+        b.id, b.event_id, b.seat_numbers, b.quantity, b.total_amount, b.currency,
+        e.title as event_title, e.start_date, e.start_time, e.end_time,
+        v.name as venue_name, v.city as venue_city, v.address as venue_address,
+        u.email, u.first_name, u.last_name, u.id as user_id
+      FROM bookings b
+      LEFT JOIN events e ON b.event_id = e.id
+      LEFT JOIN venues v ON e.venue_id = v.id
+      LEFT JOIN users u ON b.user_id = u.id
+      WHERE b.id = $1
+    `, [booking_id]);
+
+    if (bookingDetails.rows.length === 0) {
+      throw new Error('Booking not found');
+    }
+
+    const booking = bookingDetails.rows[0];
+
+    // Prepare ticket details for PDF generation
+    const ticketDetails = {
+      id: booking.id,
+      event_id: booking.event_id,
+      user_id: booking.user_id,
+      event_title: booking.event_title,
+      start_date: booking.start_date,
+      start_time: booking.start_time,
+      end_time: booking.end_time,
+      venue_name: booking.venue_name || 'Venue TBA',
+      venue_city: booking.venue_city || 'Location TBA',
+      venue_address: booking.venue_address || '',
+      seat_numbers: booking.seat_numbers,
+      quantity: booking.quantity,
+      total_amount: booking.total_amount,
+      currency: booking.currency,
+      user_name: `${booking.first_name} ${booking.last_name}`.trim() || 'Guest',
+    };
+
+    // Generate PDF ticket
+    const pdfBuffer = await generateTicketPDF(ticketDetails);
+
+    // Send email with PDF attachment
+    const emailResult = await sendTicketEmail(booking.email, ticketDetails, pdfBuffer);
+
+    if (emailResult.success) {
+      logger.info(`Ticket email sent successfully to ${booking.email} for booking ${booking_id}`);
+    } else {
+      logger.error(`Failed to send ticket email to ${booking.email}:`, emailResult.error);
+    }
+
+    return emailResult;
+  } catch (error) {
+    logger.error('Error in sendTicketEmailAsync:', error);
+    throw error;
+  }
 };
 
